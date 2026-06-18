@@ -55,13 +55,11 @@ void main(void)
 
     //    LED_Display1();
 
-  //      KEY_STATUS();                 //按键扫描，三种按键：短按、长按、双击
- //       KEY_Control_LED_1();
+        KEY_STATUS();                 //按键扫描，三种按键：短按、长按、双击
+        KEY_Control_LED_1();          //短按选择状态一，长按选择状态二，双击切换状态
 
 //        KEY_STATUS_1();            //按键扫描，按键切换两种显示状态
-//        KEY_Control_LED_2();
-
-        KEY_Control_LED();
+        KEY_Control_LED_2();          //显示当前LED状态
 
      //   myGpio->GPACLEAR=1;
     }

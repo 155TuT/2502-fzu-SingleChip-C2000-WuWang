@@ -41,6 +41,10 @@ void KEY_initial(void)
     Flag1 = 0;
     Flag2 = 0;
     KeyCount = 0;
+    key_status = KEY_PRESS_NO;
+    key_counter = 0;
+    key_counter1 = 0;
+    key_counter2 = 0;
 }
 //
 // (2) module Configure
@@ -99,37 +103,55 @@ void KEY_eventConfigure(void)
 void KEY_STATUS(void)
 {
     if(KEYPRESSED == GetKeyStatus(KEY1))
+    {
+        if(0 == Flag)
+        {
+            Flag = 1;
+            key_counter1 = 0;
+        }
+        else
         {
             key_counter1++;
         }
-
-        if((KEYPRESSED != GetKeyStatus(KEY1)) )
-        {
-
-            if( key_counter1 >= 600 && key_counter1 <= 8000)     //短按识别
-               {
-                   key_status = KEY_PRESS_SHORT;
-               }
-           if( key_counter1 >= 10000)                            //长按识别
-               {
-               key_status = KEY_PRESS_LONG;
-               }
-           key_counter1=0;
-       }
-
-    if((KEYPRESSED == GetKeyStatus(KEY1)) &&( 0 == Flag) )
-    {
-        Flag = 1;
     }
-    if((KEYPRESSED != GetKeyStatus(KEY1)) &&( 1 == Flag) )
+    else
     {
-        Flag = 0;
-        KeyCount ++;
-        if(KeyCount>=2)
+        if(1 == Flag)
         {
-            KeyCount = 0;
-            key_status = KEY_PRESS_TWICE;
+            Flag = 0;
 
+            if(key_counter1 >= 10000)                            //长按识别
+            {
+                key_status = KEY_PRESS_LONG;
+                Flag1 = 0;
+                key_counter2 = 0;
+            }
+            else if(key_counter1 >= 600)                         //短按识别，等待是否形成双击
+            {
+                if(1 == Flag1)
+                {
+                    key_status = KEY_PRESS_TWICE;
+                    Flag1 = 0;
+                    key_counter2 = 0;
+                }
+                else
+                {
+                    Flag1 = 1;
+                    key_counter2 = 0;
+                }
+            }
+            key_counter1 = 0;
+        }
+
+        if(1 == Flag1)
+        {
+            key_counter2++;
+            if(key_counter2 >= 8000)                              //双击等待超时，确认短按
+            {
+                key_status = KEY_PRESS_SHORT;
+                Flag1 = 0;
+                key_counter2 = 0;
+            }
         }
     }
 }
@@ -137,15 +159,25 @@ void KEY_STATUS(void)
 // **************************************************************************
 void KEY_STATUS_1(void)
 {
-    if((KEYPRESSED == GetKeyStatus(KEY1)) &&( 0 == Flag) )
+    if((KEYPRESSED == GetKeyStatus(KEY1)) &&( 0 == Flag2) )
     {
-        Flag = 1;
+        Flag2 = 1;
+        key_counter = 0;
     }
 
-    if((KEYPRESSED != GetKeyStatus(KEY1)) &&( 1 == Flag) )
+    if((KEYPRESSED == GetKeyStatus(KEY1)) &&( 1 == Flag2) )
     {
-        Flag = 0;
-        KeyCount ++;
+        key_counter++;
+    }
+
+    if((KEYPRESSED != GetKeyStatus(KEY1)) &&( 1 == Flag2) )
+    {
+        Flag2 = 0;
+        if(key_counter >= 600)
+        {
+            KeyCount ++;
+        }
+        key_counter = 0;
     }
 
 }
