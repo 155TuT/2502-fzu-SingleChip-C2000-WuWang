@@ -3,3 +3,5 @@
 这里是 `teacher-origin` 分支的作业，完全是老师下发的源文件，未放弃跟踪老师源文件中的 `Debug/` 和 `Release/` 等编译产物。
 
 如想查看本人参考答案，请查看 `main` 分支而不是本分支。
+
+本课程[线上学习资源](https://www.bilibili.com/video/BV16kcBzwEdC)
