@@ -24,7 +24,6 @@
 #include "Application\app.h"
 
 
-uint16_t *p;
 
 
 
@@ -45,53 +44,15 @@ void main(void)
 	LED_GPIO_initial();
 
 
-	GPIO_setMode(LED_Gpio_obj, GPIO_Number_5, GPIO_5_Mode_GeneralPurpose);
-	GPIO_setDirection(LED_Gpio_obj, GPIO_Number_5, GPIO_Direction_Output);
-
-
 
 	//3. PIE runtime environment(if use interrupt)
 
 	//4. the global interrupt start (if use interrupt)
 
 	//5. main LOOP
-
-	p=(uint16_t *) 0x8000;
-
     for( ; ; )
     {
-    	// call API from app.h
-
-    	LED_Control();
-//    *(p+1)=0xFFFF;£»
-////    *(p+1)=0xFFFE;
-////    *(p+1)=0xFFFD;
-//    *(p+1)=0xFFFB;
-//    *(p+1)=0xFFF7;
-//
-//    	*p=0xFFFF;
-//        *p=0xFFFE;
-//    	*p=0xFFFD;
-//    	*p=0xFFFB;
-//    	*p=0xFFF7;
-
-////
-//    	myGpio->GPADAT=0;
-//    	myGpio->GPADAT=1;
-//    	myGpio->GPADAT=2;
-//    	myGpio->GPADAT=3;
-//    	myGpio->GPADAT=4;
-//    	myGpio->GPADAT=8;
-    	///myGpio->GPACLEAR=8;
-    	//myGpio->GPADIR=15;
-//    	myGpio->GPADAT=0x55555555;
-//        Delay(100000L);
-//        myGpio->GPADAT=0xaaaaAAAA;
-//        Delay(100000L);
-
-
+        LED_Control();
     }
 
-
 }
-
