@@ -21,14 +21,12 @@
 2、功能：实现一个灯的闪烁控制。
 3、教学：用于硬件平台和软件平台的测试；软件架构的解读；第一第二周的教学。
       
-//    	myGpio->GPACLEAR=1;
-//
-//       myGpio->GPACLEAR = 2;
-//       myGpio->GPADAT=1;
- //       myGpio->GPACLEAR = 7;
+//    	  myGpio->GPACLEAR = 1;
+//        myGpio->GPACLEAR = 2;
+//        myGpio->GPADAT=1;
+//        myGpio->GPACLEAR = 7;
 //        myGpio->GPACLEAR = 8;
 //        LED_on(LED1);
-//
 //        LED_on(LED2);
 //
 //        LED_off(LED3);
