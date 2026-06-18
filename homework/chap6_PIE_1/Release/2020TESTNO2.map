@@ -1,0 +1,603 @@
+******************************************************************************
+             TMS320C2000 Linker PC v18.12.4                    
+******************************************************************************
+>> Linked Sun Mar  1 20:53:50 2020
+
+OUTPUT FILE NAME:   <2020TESTNO2.cof>
+ENTRY POINT SYMBOL: "_c_int00"  address: 000085fd
+
+
+MEMORY CONFIGURATION
+
+         name            origin    length      used     unused   attr    fill
+----------------------  --------  ---------  --------  --------  ----  --------
+PAGE 0:
+  BEGIN                 00000000   00000002  00000002  00000000  RWIX
+  RAMM0                 00000050   000003b0  0000001e  00000392  RWIX
+  PRAML0                00008000   00000900  000007f7  00000109  RWIX
+  IQTABLES              003fe000   00000b50  00000000  00000b50  RWIX
+  IQTABLES2             003feb50   0000008c  00000000  0000008c  RWIX
+  IQTABLES3             003febdc   000000aa  00000000  000000aa  RWIX
+  BOOTROM               003ff27c   00000d44  00000000  00000d44  RWIX
+  RESET                 003fffc0   00000002  00000000  00000002  RWIX
+
+PAGE 1:
+  BOOT_RSVD             00000002   0000004e  00000000  0000004e  RWIX
+  RAMM1                 00000400   00000400  00000300  00000100  RWIX
+  DRAML0                00008900   00000700  00000025  000006db  RWIX
+
+
+SECTION ALLOCATION MAP
+
+ output                                  attributes/
+section   page    origin      length       input sections
+--------  ----  ----------  ----------   ----------------
+codestart 
+*          0    00000000    00000002     
+                  00000000    00000002     F2802x_CodeStartBranch.obj (codestart)
+
+.cinit     0    00000050    0000001e     
+                  00000050    0000000e     rts2800_ml.lib : exit.c.obj (.cinit)
+                  0000005e    00000005                    : _lock.c.obj (.cinit:__lock)
+                  00000063    00000005                    : _lock.c.obj (.cinit:__unlock)
+                  00000068    00000004     sci_io.obj (.cinit)
+                  0000006c    00000002     --HOLE-- [fill = 0]
+
+.text      0    00008000    000007f7     
+                  00008000    00000128     clk.obj (.text)
+                  00008128    00000124     LED_Gpio.obj (.text)
+                  0000824c    00000113     gpio.obj (.text)
+                  0000835f    000000f8     pie.obj (.text)
+                  00008457    000000e2     app.obj (.text)
+                  00008539    00000070     pll.obj (.text)
+                  000085a9    00000054     key_Gpio.obj (.text)
+                  000085fd    00000054     rts2800_ml.lib : boot28.asm.obj (.text)
+                  00008651    00000046     wdog.obj (.text)
+                  00008697    00000041     User_System.obj (.text)
+                  000086d8    00000032     F2802x_Device.obj (.text)
+                  0000870a    00000029     rts2800_ml.lib : exit.c.obj (.text)
+                  00008733    00000025     cpu.obj (.text)
+                  00008758    00000024     rts2800_ml.lib : cpy_tbl.c.obj (.text)
+                  0000877c    0000001d     main.obj (.text)
+                  00008799    0000001d     rts2800_ml.lib : memcpy.c.obj (.text)
+                  000087b6    00000019                    : args_main.c.obj (.text)
+                  000087cf    0000000f     Delay.obj (.text)
+                  000087de    00000009     rts2800_ml.lib : _lock.c.obj (.text)
+                  000087e7    00000008     F2802x_CodeStartBranch.obj (.text)
+                  000087ef    00000005     pie.obj (.text:retain)
+                  000087f4    00000002     rts2800_ml.lib : pre_init.c.obj (.text)
+                  000087f6    00000001                    : startup.c.obj (.text)
+
+.pinit     0    00000050    00000000     UNINITIALIZED
+
+.reset     0    003fffc0    00000002     DSECT
+                  003fffc0    00000002     rts2800_ml.lib : boot28.asm.obj (.reset)
+
+.stack     1    00000400    00000300     UNINITIALIZED
+                  00000400    00000300     --HOLE--
+
+.ebss      1    00008900    00000025     UNINITIALIZED
+                  00008900    00000012     main.obj (.ebss)
+                  00008912    00000006     rts2800_ml.lib : exit.c.obj (.ebss)
+                  00008918    00000004     main.obj (.ebss:_LED)
+                  0000891c    00000004     sci_io.obj (.ebss)
+                  00008920    00000002     rts2800_ml.lib : _lock.c.obj (.ebss:__lock)
+                  00008922    00000002                    : _lock.c.obj (.ebss:__unlock)
+                  00008924    00000001     cpu.obj (.ebss)
+
+MODULE SUMMARY
+
+       Module                       code   initialized data   uninitialized data
+       ------                       ----   ----------------   ------------------
+    .\
+       main.obj                     29     0                  22                
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       29     0                  22                
+                                                                                
+    .\Application\
+       app.obj                      226    0                  0                 
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       226    0                  0                 
+                                                                                
+    .\F2802x_Component\
+       F2802x_Device.obj            50     0                  0                 
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       50     0                  0                 
+                                                                                
+    .\F2802x_Component\source\
+       clk.obj                      296    0                  0                 
+       gpio.obj                     275    0                  0                 
+       pie.obj                      253    0                  0                 
+       pll.obj                      112    0                  0                 
+       wdog.obj                     70     0                  0                 
+       cpu.obj                      37     0                  1                 
+       F2802x_CodeStartBranch.obj   10     0                  0                 
+       sci_io.obj                   0      4                  4                 
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       1053   4                  5                 
+                                                                                
+    .\User_Component\Delay\
+       Delay.obj                    15     0                  0                 
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       15     0                  0                 
+                                                                                
+    .\User_Component\LED_Gpio\
+       LED_Gpio.obj                 292    0                  0                 
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       292    0                  0                 
+                                                                                
+    .\User_Component\User_System\
+       User_System.obj              65     0                  0                 
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       65     0                  0                 
+                                                                                
+    .\User_Component\key_GPIO\
+       key_Gpio.obj                 84     0                  0                 
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       84     0                  0                 
+                                                                                
+    C:\ti\ccs930\ccs\tools\compiler\ti-cgt-c2000_18.12.4.LTS\lib\rts2800_ml.lib
+       boot28.asm.obj               84     0                  0                 
+       exit.c.obj                   41     14                 6                 
+       cpy_tbl.c.obj                36     0                  0                 
+       memcpy.c.obj                 29     0                  0                 
+       args_main.c.obj              25     0                  0                 
+       _lock.c.obj                  9      10                 4                 
+       pre_init.c.obj               2      0                  0                 
+       startup.c.obj                1      0                  0                 
+    +--+----------------------------+------+------------------+--------------------+
+       Total:                       227    24                 10                
+                                                                                
+       Stack:                       0      0                  768               
+    +--+----------------------------+------+------------------+--------------------+
+       Grand Total:                 2041   28                 805               
+
+
+GLOBAL DATA SYMBOLS: SORTED BY DATA PAGE
+
+address     data page           name
+--------    ----------------    ----
+00000400      10 (00000400)     __stack
+
+00008900     224 (00008900)     _key_counter
+00008901     224 (00008900)     _key_status
+00008902     224 (00008900)     _key_on
+00008903     224 (00008900)     _KeyCount
+00008904     224 (00008900)     _myClk
+00008906     224 (00008900)     _myCpu
+00008908     224 (00008900)     _myPll
+0000890a     224 (00008900)     _myWDog
+0000890c     224 (00008900)     _myPie
+0000890e     224 (00008900)     _myGpio
+00008910     224 (00008900)     _time_test
+00008912     224 (00008900)     ___TI_enable_exit_profile_output
+00008914     224 (00008900)     ___TI_cleanup_ptr
+00008916     224 (00008900)     ___TI_dtors_ptr
+00008918     224 (00008900)     _LED
+0000891c     224 (00008900)     _deviceOpen
+0000891e     224 (00008900)     _ioSci
+00008920     224 (00008900)     __lock
+00008922     224 (00008900)     __unlock
+00008924     224 (00008900)     _cpu
+
+
+GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
+
+page  address   name                              
+----  -------   ----                              
+0     00008000  .text                             
+0     0000870a  C$$EXIT                           
+0     00008121  _CLK_disableAdcClock              
+0     0000811b  _CLK_disableClkIn                 
+0     00008117  _CLK_disableCompClock             
+0     00008110  _CLK_disableCpuTimerClock         
+0     0000810a  _CLK_disableCrystalOsc            
+0     00008103  _CLK_disableEcap1Clock            
+0     000080fc  _CLK_disableGpioInputClock        
+0     000080f5  _CLK_disableHrPwmClock            
+0     000080ee  _CLK_disableI2cClock              
+0     000080e8  _CLK_disableOsc1                  
+0     000080e2  _CLK_disableOsc1HaltMode          
+0     000080dc  _CLK_disableOsc2                  
+0     000080d6  _CLK_disableOsc2HaltMode          
+0     000080cc  _CLK_disablePwmClock              
+0     000080c3  _CLK_disableSciaClock             
+0     000080bc  _CLK_disableSpiaClock             
+0     000080b5  _CLK_disableTbClockSync           
+0     000080af  _CLK_disableWatchDogHaltMode      
+0     000080a8  _CLK_enableAdcClock               
+0     000080a2  _CLK_enableClkIn                  
+0     0000809c  _CLK_enableCompClock              
+0     00008096  _CLK_enableCpuTimerClock          
+0     00008090  _CLK_enableCrystalOsc             
+0     00008089  _CLK_enableEcap1Clock             
+0     00008082  _CLK_enableGpioInputClock         
+0     0000807b  _CLK_enableHrPwmClock             
+0     00008074  _CLK_enableI2cClock               
+0     0000806e  _CLK_enableOsc1                   
+0     00008068  _CLK_enableOsc1HaltMode           
+0     00008062  _CLK_enableOsc2                   
+0     0000805c  _CLK_enableOsc2HaltMode           
+0     00008053  _CLK_enablePwmClock               
+0     0000804a  _CLK_enableSciaClock              
+0     00008043  _CLK_enableSpiaClock              
+0     0000803c  _CLK_enableTbClockSync            
+0     00008036  _CLK_enableWatchDogHaltMode       
+0     00008030  _CLK_init                         
+0     00008029  _CLK_setClkOutPreScaler           
+0     00008023  _CLK_setLowSpdPreScaler           
+0     0000801c  _CLK_setOsc2Src                   
+0     00008015  _CLK_setOscSrc                    
+0     0000800e  _CLK_setTimer2PreScale            
+0     00008007  _CLK_setTimer2Src                 
+0     00008000  _CLK_setWatchDogSrc               
+0     00008755  _CPU_clearIntFlags                
+0     00008752  _CPU_disableDebugInt              
+0     0000874f  _CPU_disableGlobalInts            
+0     0000874a  _CPU_disableInt                   
+0     00008747  _CPU_disableInts                  
+0     00008744  _CPU_disableProtectedRegisterWrite
+0     00008741  _CPU_enableDebugInt               
+0     0000873e  _CPU_enableGlobalInts             
+0     0000873a  _CPU_enableInt                    
+0     00008737  _CPU_enableProtectedRegisterWrite 
+0     00008733  _CPU_init                         
+0     000087cf  _Delay                            
+0     000081a1  _Delay1                           
+0     00008351  _GPIO_getData                     
+0     00008346  _GPIO_getPortData                 
+0     00008340  _GPIO_init                        
+0     00008337  _GPIO_lpmSelect                   
+0     0000831d  _GPIO_setDirection                
+0     00008312  _GPIO_setExtInt                   
+0     00008302  _GPIO_setHigh                     
+0     000082f2  _GPIO_setLow                      
+0     000082c7  _GPIO_setMode                     
+0     000082ba  _GPIO_setPortData                 
+0     000082a0  _GPIO_setPullUp                   
+0     0000827c  _GPIO_setQualification            
+0     0000825c  _GPIO_setQualificationPeriod      
+0     0000824c  _GPIO_toggle                      
+0     00008527  _KEY_Control_LED                  
+0     00008515  _KEY_Control_LED1                 
+0     000085fc  _KEY_GPIO_eventConfigure          
+0     000085fb  _KEY_GPIO_functionConfigure       
+0     000085f4  _KEY_GPIO_initial                 
+0     000085d0  _KEY_GPIO_pinConfigure            
+0     000085a9  _KEY_ID                           
+1     00008903  _KeyCount                         
+1     00008918  _LED                              
+0     000084f5  _LED_Control1                     
+0     0000822c  _LED_Control2                     
+0     00008477  _LED_DISPLAY1                     
+0     00008215  _LED_DISPLAY11                    
+0     00008457  _LED_DISPLAY2                     
+0     000081f5  _LED_DISPLAY22                    
+0     000084b0  _LED_DISPLAY3                     
+0     000081b0  _LED_DISPLAY33                    
+0     000081a0  _LED_GPIO_eventConfigure          
+0     0000819f  _LED_GPIO_functionConfigure       
+0     0000817d  _LED_GPIO_initial                 
+0     00008128  _LED_GPIO_pinConfigure            
+0     0000849a  _LED_KEY_Control                  
+0     0000848e  _LED_KEY_short_long               
+0     00008450  _PIE_clearAllFlags                
+0     0000844d  _PIE_clearAllInts                 
+0     0000844a  _PIE_disable                      
+0     00008443  _PIE_disableAllInts               
+0     0000843f  _PIE_disableCaptureInt            
+0     00008436  _PIE_disableExtInt                
+0     0000842c  _PIE_disableInt                   
+0     00008429  _PIE_enable                       
+0     00008417  _PIE_enableAdcInt                 
+0     00008413  _PIE_enableCaptureInt             
+0     000083f6  _PIE_enableExtInt                 
+0     000083ed  _PIE_enableInt                    
+0     000083e8  _PIE_enablePwmInt                 
+0     000083e3  _PIE_enablePwmTzInt               
+0     000083e0  _PIE_enableTimer0Int              
+0     000083d7  _PIE_forceInt                     
+0     000083cf  _PIE_getExtIntCount               
+0     000083c8  _PIE_getIntEnables                
+0     000083c1  _PIE_getIntFlags                  
+0     000087ef  _PIE_illegalIsr                   
+0     000083b9  _PIE_init                         
+0     000083a7  _PIE_registerPieIntHandler        
+0     0000839c  _PIE_registerSystemIntHandler     
+0     00008391  _PIE_setDefaultIntVectorTable     
+0     00008380  _PIE_setExtIntPolarity            
+0     0000836c  _PIE_unregisterPieIntHandler      
+0     0000835f  _PIE_unregisterSystemIntHandler   
+0     000085a3  _PLL_disable                      
+0     0000859d  _PLL_disableClkDetect             
+0     00008597  _PLL_disableNormRdy               
+0     00008591  _PLL_disableOsc                   
+0     0000858b  _PLL_enable                       
+0     00008585  _PLL_enableClkDetect              
+0     0000857f  _PLL_enableNormRdy                
+0     00008579  _PLL_enableOsc                    
+0     00008539  _PLL_getClkStatus                 
+0     00008576  _PLL_getDivider                   
+0     00008549  _PLL_getLockStatus                
+0     00008572  _PLL_getMultiplier                
+0     0000856c  _PLL_init                         
+0     00008566  _PLL_resetClkDetect               
+0     0000853c  _PLL_setDivider                   
+0     00008561  _PLL_setLockPeriod                
+0     00008543  _PLL_setMultiplier                
+0     0000854c  _PLL_setup                        
+0     000086d8  _System_authorize                 
+0     000086d7  _User_System_eventConfigure       
+0     00008699  _User_System_functionConfigure    
+0     00008698  _User_System_initial              
+0     00008697  _User_System_pinConfigure         
+0     0000868f  _WDOG_clearCounter                
+0     00008687  _WDOG_disable                     
+0     00008681  _WDOG_disableInt                  
+0     0000867b  _WDOG_disableOverRide             
+0     00008672  _WDOG_enable                      
+0     0000866c  _WDOG_enableInt                   
+0     00008666  _WDOG_enableOverRide              
+0     00008663  _WDOG_getIntStatus                
+0     0000865d  _WDOG_init                        
+0     0000865b  _WDOG_setCount                    
+0     00008651  _WDOG_setPreScaler                
+1     00000700  __STACK_END                       
+abs   00000300  __STACK_SIZE                      
+1     00008914  ___TI_cleanup_ptr                 
+1     00008916  ___TI_dtors_ptr                   
+1     00008912  ___TI_enable_exit_profile_output  
+abs   ffffffff  ___TI_pprof_out_hndl              
+abs   ffffffff  ___TI_prof_data_size              
+abs   ffffffff  ___TI_prof_data_start             
+abs   ffffffff  ___binit__                        
+abs   ffffffff  ___c_args__                       
+0     00000050  ___cinit__                        
+0     000087f7  ___etext__                        
+abs   ffffffff  ___pinit__                        
+0     00008000  ___text__                         
+0     000087b6  __args_main                       
+1     00008920  __lock                            
+0     000087e6  __nop                             
+0     000087e2  __register_lock                   
+0     000087de  __register_unlock                 
+1     00000400  __stack                           
+0     000087f6  __system_post_cinit               
+0     000087f4  __system_pre_init                 
+1     00008922  __unlock                          
+0     0000870a  _abort                            
+0     000085fd  _c_int00                          
+0     00008758  _copy_in                          
+1     00008924  _cpu                              
+1     0000891c  _deviceOpen                       
+0     0000870c  _exit                             
+1     0000891e  _ioSci                            
+1     00008900  _key_counter                      
+1     00008902  _key_on                           
+1     00008901  _key_status                       
+0     0000877c  _main                             
+0     00008799  _memcpy                           
+1     00008904  _myClk                            
+1     00008906  _myCpu                            
+1     0000890e  _myGpio                           
+1     0000890c  _myPie                            
+1     00008908  _myPll                            
+1     0000890a  _myWDog                           
+1     00008910  _time_test                        
+abs   ffffffff  binit                             
+0     00000050  cinit                             
+0     00000000  code_start                        
+0     000087f7  etext                             
+abs   ffffffff  pinit                             
+
+
+GLOBAL SYMBOLS: SORTED BY Symbol Address 
+
+page  address   name                              
+----  -------   ----                              
+0     00000000  code_start                        
+0     00000050  ___cinit__                        
+0     00000050  cinit                             
+0     00008000  .text                             
+0     00008000  _CLK_setWatchDogSrc               
+0     00008000  ___text__                         
+0     00008007  _CLK_setTimer2Src                 
+0     0000800e  _CLK_setTimer2PreScale            
+0     00008015  _CLK_setOscSrc                    
+0     0000801c  _CLK_setOsc2Src                   
+0     00008023  _CLK_setLowSpdPreScaler           
+0     00008029  _CLK_setClkOutPreScaler           
+0     00008030  _CLK_init                         
+0     00008036  _CLK_enableWatchDogHaltMode       
+0     0000803c  _CLK_enableTbClockSync            
+0     00008043  _CLK_enableSpiaClock              
+0     0000804a  _CLK_enableSciaClock              
+0     00008053  _CLK_enablePwmClock               
+0     0000805c  _CLK_enableOsc2HaltMode           
+0     00008062  _CLK_enableOsc2                   
+0     00008068  _CLK_enableOsc1HaltMode           
+0     0000806e  _CLK_enableOsc1                   
+0     00008074  _CLK_enableI2cClock               
+0     0000807b  _CLK_enableHrPwmClock             
+0     00008082  _CLK_enableGpioInputClock         
+0     00008089  _CLK_enableEcap1Clock             
+0     00008090  _CLK_enableCrystalOsc             
+0     00008096  _CLK_enableCpuTimerClock          
+0     0000809c  _CLK_enableCompClock              
+0     000080a2  _CLK_enableClkIn                  
+0     000080a8  _CLK_enableAdcClock               
+0     000080af  _CLK_disableWatchDogHaltMode      
+0     000080b5  _CLK_disableTbClockSync           
+0     000080bc  _CLK_disableSpiaClock             
+0     000080c3  _CLK_disableSciaClock             
+0     000080cc  _CLK_disablePwmClock              
+0     000080d6  _CLK_disableOsc2HaltMode          
+0     000080dc  _CLK_disableOsc2                  
+0     000080e2  _CLK_disableOsc1HaltMode          
+0     000080e8  _CLK_disableOsc1                  
+0     000080ee  _CLK_disableI2cClock              
+0     000080f5  _CLK_disableHrPwmClock            
+0     000080fc  _CLK_disableGpioInputClock        
+0     00008103  _CLK_disableEcap1Clock            
+0     0000810a  _CLK_disableCrystalOsc            
+0     00008110  _CLK_disableCpuTimerClock         
+0     00008117  _CLK_disableCompClock             
+0     0000811b  _CLK_disableClkIn                 
+0     00008121  _CLK_disableAdcClock              
+0     00008128  _LED_GPIO_pinConfigure            
+0     0000817d  _LED_GPIO_initial                 
+0     0000819f  _LED_GPIO_functionConfigure       
+0     000081a0  _LED_GPIO_eventConfigure          
+0     000081a1  _Delay1                           
+0     000081b0  _LED_DISPLAY33                    
+0     000081f5  _LED_DISPLAY22                    
+0     00008215  _LED_DISPLAY11                    
+0     0000822c  _LED_Control2                     
+0     0000824c  _GPIO_toggle                      
+0     0000825c  _GPIO_setQualificationPeriod      
+0     0000827c  _GPIO_setQualification            
+0     000082a0  _GPIO_setPullUp                   
+0     000082ba  _GPIO_setPortData                 
+0     000082c7  _GPIO_setMode                     
+0     000082f2  _GPIO_setLow                      
+0     00008302  _GPIO_setHigh                     
+0     00008312  _GPIO_setExtInt                   
+0     0000831d  _GPIO_setDirection                
+0     00008337  _GPIO_lpmSelect                   
+0     00008340  _GPIO_init                        
+0     00008346  _GPIO_getPortData                 
+0     00008351  _GPIO_getData                     
+0     0000835f  _PIE_unregisterSystemIntHandler   
+0     0000836c  _PIE_unregisterPieIntHandler      
+0     00008380  _PIE_setExtIntPolarity            
+0     00008391  _PIE_setDefaultIntVectorTable     
+0     0000839c  _PIE_registerSystemIntHandler     
+0     000083a7  _PIE_registerPieIntHandler        
+0     000083b9  _PIE_init                         
+0     000083c1  _PIE_getIntFlags                  
+0     000083c8  _PIE_getIntEnables                
+0     000083cf  _PIE_getExtIntCount               
+0     000083d7  _PIE_forceInt                     
+0     000083e0  _PIE_enableTimer0Int              
+0     000083e3  _PIE_enablePwmTzInt               
+0     000083e8  _PIE_enablePwmInt                 
+0     000083ed  _PIE_enableInt                    
+0     000083f6  _PIE_enableExtInt                 
+0     00008413  _PIE_enableCaptureInt             
+0     00008417  _PIE_enableAdcInt                 
+0     00008429  _PIE_enable                       
+0     0000842c  _PIE_disableInt                   
+0     00008436  _PIE_disableExtInt                
+0     0000843f  _PIE_disableCaptureInt            
+0     00008443  _PIE_disableAllInts               
+0     0000844a  _PIE_disable                      
+0     0000844d  _PIE_clearAllInts                 
+0     00008450  _PIE_clearAllFlags                
+0     00008457  _LED_DISPLAY2                     
+0     00008477  _LED_DISPLAY1                     
+0     0000848e  _LED_KEY_short_long               
+0     0000849a  _LED_KEY_Control                  
+0     000084b0  _LED_DISPLAY3                     
+0     000084f5  _LED_Control1                     
+0     00008515  _KEY_Control_LED1                 
+0     00008527  _KEY_Control_LED                  
+0     00008539  _PLL_getClkStatus                 
+0     0000853c  _PLL_setDivider                   
+0     00008543  _PLL_setMultiplier                
+0     00008549  _PLL_getLockStatus                
+0     0000854c  _PLL_setup                        
+0     00008561  _PLL_setLockPeriod                
+0     00008566  _PLL_resetClkDetect               
+0     0000856c  _PLL_init                         
+0     00008572  _PLL_getMultiplier                
+0     00008576  _PLL_getDivider                   
+0     00008579  _PLL_enableOsc                    
+0     0000857f  _PLL_enableNormRdy                
+0     00008585  _PLL_enableClkDetect              
+0     0000858b  _PLL_enable                       
+0     00008591  _PLL_disableOsc                   
+0     00008597  _PLL_disableNormRdy               
+0     0000859d  _PLL_disableClkDetect             
+0     000085a3  _PLL_disable                      
+0     000085a9  _KEY_ID                           
+0     000085d0  _KEY_GPIO_pinConfigure            
+0     000085f4  _KEY_GPIO_initial                 
+0     000085fb  _KEY_GPIO_functionConfigure       
+0     000085fc  _KEY_GPIO_eventConfigure          
+0     000085fd  _c_int00                          
+0     00008651  _WDOG_setPreScaler                
+0     0000865b  _WDOG_setCount                    
+0     0000865d  _WDOG_init                        
+0     00008663  _WDOG_getIntStatus                
+0     00008666  _WDOG_enableOverRide              
+0     0000866c  _WDOG_enableInt                   
+0     00008672  _WDOG_enable                      
+0     0000867b  _WDOG_disableOverRide             
+0     00008681  _WDOG_disableInt                  
+0     00008687  _WDOG_disable                     
+0     0000868f  _WDOG_clearCounter                
+0     00008697  _User_System_pinConfigure         
+0     00008698  _User_System_initial              
+0     00008699  _User_System_functionConfigure    
+0     000086d7  _User_System_eventConfigure       
+0     000086d8  _System_authorize                 
+0     0000870a  C$$EXIT                           
+0     0000870a  _abort                            
+0     0000870c  _exit                             
+0     00008733  _CPU_init                         
+0     00008737  _CPU_enableProtectedRegisterWrite 
+0     0000873a  _CPU_enableInt                    
+0     0000873e  _CPU_enableGlobalInts             
+0     00008741  _CPU_enableDebugInt               
+0     00008744  _CPU_disableProtectedRegisterWrite
+0     00008747  _CPU_disableInts                  
+0     0000874a  _CPU_disableInt                   
+0     0000874f  _CPU_disableGlobalInts            
+0     00008752  _CPU_disableDebugInt              
+0     00008755  _CPU_clearIntFlags                
+0     00008758  _copy_in                          
+0     0000877c  _main                             
+0     00008799  _memcpy                           
+0     000087b6  __args_main                       
+0     000087cf  _Delay                            
+0     000087de  __register_unlock                 
+0     000087e2  __register_lock                   
+0     000087e6  __nop                             
+0     000087ef  _PIE_illegalIsr                   
+0     000087f4  __system_pre_init                 
+0     000087f6  __system_post_cinit               
+0     000087f7  ___etext__                        
+0     000087f7  etext                             
+1     00000400  __stack                           
+1     00000700  __STACK_END                       
+1     00008900  _key_counter                      
+1     00008901  _key_status                       
+1     00008902  _key_on                           
+1     00008903  _KeyCount                         
+1     00008904  _myClk                            
+1     00008906  _myCpu                            
+1     00008908  _myPll                            
+1     0000890a  _myWDog                           
+1     0000890c  _myPie                            
+1     0000890e  _myGpio                           
+1     00008910  _time_test                        
+1     00008912  ___TI_enable_exit_profile_output  
+1     00008914  ___TI_cleanup_ptr                 
+1     00008916  ___TI_dtors_ptr                   
+1     00008918  _LED                              
+1     0000891c  _deviceOpen                       
+1     0000891e  _ioSci                            
+1     00008920  __lock                            
+1     00008922  __unlock                          
+1     00008924  _cpu                              
+abs   00000300  __STACK_SIZE                      
+abs   ffffffff  ___TI_pprof_out_hndl              
+abs   ffffffff  ___TI_prof_data_size              
+abs   ffffffff  ___TI_prof_data_start             
+abs   ffffffff  ___binit__                        
+abs   ffffffff  ___c_args__                       
+abs   ffffffff  ___pinit__                        
+abs   ffffffff  binit                             
+abs   ffffffff  pinit                             
+
+[204 symbols]
