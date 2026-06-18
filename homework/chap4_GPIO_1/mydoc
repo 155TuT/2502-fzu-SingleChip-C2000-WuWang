@@ -23,9 +23,12 @@
       
 //      	myGpio->GPACLEAR = 1;
 //        myGpio->GPACLEAR = 2;
-//        myGpio->GPADAT=1;
+//
+//        myGpio->GPADAT = 1;
+//
 //        myGpio->GPACLEAR = 7;
 //        myGpio->GPACLEAR = 8;
+//
 //        LED_on(LED1);
 //        LED_on(LED2);
 //
