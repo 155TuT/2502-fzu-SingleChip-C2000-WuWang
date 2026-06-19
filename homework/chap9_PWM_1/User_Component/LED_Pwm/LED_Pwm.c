@@ -39,6 +39,7 @@ void LED_PWM_initial(void)
 {
 	myCmpA = 0;
 	myCmpB = 100;
+	PWM_setCmpA(myPwm1, myCmpA);
 
 }
 //
@@ -94,7 +95,7 @@ void LED_PWM_functionConfigure(void)
 	PWM_setCounterMode(myPwm2, PWM_CounterMode_Up);
 	//4. TBPRD
 	//void PWM_setPeriod(PWM_Handle pwmHandle,const uint16_t period);
-	PWM_setPeriod(myPwm1, 60000);
+	PWM_setPeriod(myPwm1, PWM_BREATH_PERIOD);
 	PWM_setPeriod(myPwm2, 60000);
 	//void PWM_setPeriodLoad(PWM_Handle pwmHandle,const PWM_PeriodLoad_e periodLoad);
 	PWM_setPeriodLoad(myPwm1, PWM_PeriodLoad_Shadow);

@@ -101,6 +101,8 @@ TARGET_EXT uint16_t myCmpB;
 
 //! \brief Defines the constant
 //#define EXAMPLE_DEF
+#define PWM_BREATH_PERIOD  60000U
+#define PWM_BREATH_STEP    100U
 
 /*------- end of defines  -------------*/
 

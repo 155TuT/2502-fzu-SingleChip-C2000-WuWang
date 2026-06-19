@@ -70,27 +70,39 @@ interrupt void myTimer_CpuTimer0_isr(void)     //redefined in Isr.h
 //! \param[out] None
 interrupt void LED_EPWM1_isr(void)     //redefined in Isr.h
 {
-    static int direction=0;
+    static uint16_t direction = 0;
 
-    if(direction==0)       //变亮
+    if(direction == 0)       //变亮
     {
-        myCmpA +=5;
-        if(myCmpA >= 20000 )  direction= 1;
+        if(myCmpA + PWM_BREATH_STEP >= PWM_BREATH_PERIOD)
+        {
+            myCmpA = PWM_BREATH_PERIOD;
+            direction = 1;
+        }
+        else
+        {
+            myCmpA += PWM_BREATH_STEP;
+        }
     }
-    else
+    else                     //变暗
     {
-      myCmpA-=5;                   //变亮
-      if(myCmpA <= 0 )  direction= 0;
+        if(myCmpA <= PWM_BREATH_STEP)
+        {
+            myCmpA = 0;
+            direction = 0;
+        }
+        else
+        {
+            myCmpA -= PWM_BREATH_STEP;
+        }
     }
-       PWM_setCmpA(myPwm1, myCmpA);
-       PWM_clearIntFlag(myPwm1);
-       PIE_clearInt(myPie, PIE_GroupNumber_3);
 
+    PWM_setCmpA(myPwm1, myCmpA);
 
 	//void PWM_clearIntFlag(PWM_Handle pwmHandle)
 	PWM_clearIntFlag(myPwm1);
 
-	// Acknowledge this interrupt to get more from group 1
+	// Acknowledge this interrupt to get more from group 3
 	PIE_clearInt(myPie, PIE_GroupNumber_3);
 
 }
