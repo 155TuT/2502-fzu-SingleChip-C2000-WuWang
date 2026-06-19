@@ -37,8 +37,10 @@
 //! \param[out] None
 void KEY_GPIO_initial(void)
 {
-    key_status =0;
-    key_on=0;
+    key_counter = 0;
+    key_status = 0;
+    key_on = 0;
+    KeyCount = 0;
 }
 //
 // (2) module Configure
