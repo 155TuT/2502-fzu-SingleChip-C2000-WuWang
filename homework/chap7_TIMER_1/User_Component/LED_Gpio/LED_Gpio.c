@@ -37,15 +37,14 @@
 //! \param[out] None
 void LED_GPIO_initial(void)
 {
-	LED[0]=GPIO_Number_0;
-	LED[1]=GPIO_Number_1;
-	LED[2]=GPIO_Number_2;
-	LED[3]=GPIO_Number_3;
-
 	LED_off(LED1);
 	LED_off(LED2);
 	LED_off(LED3);
 	LED_off(LED4);
+	LED[0]=GPIO_Number_0;
+	LED[1]=GPIO_Number_1;
+	LED[2]=GPIO_Number_2;
+	LED[3]=GPIO_Number_3;
 
 	LED_Count = 0;
 	LED_on(LED[LED_Count]);

@@ -36,7 +36,13 @@ void main(void)
     LED_GPIO_eventConfigure();
 	LED_GPIO_initial();
 
-    //2.2 myTimer
+    //2.2 KEY
+    KEY_pinConfigure();
+    KEY_functionConfigure();
+    KEY_eventConfigure();
+    KEY_initial();
+
+    //2.3 myTimer
     myTimer_pinConfigure();
     myTimer_functionConfigure();
     myTimer_eventConfigure();
