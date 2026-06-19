@@ -56,20 +56,18 @@ void myTimer_pinConfigure(void)
 //! \param[out] None
 void myTimer_functionConfigure(void)
 {
-	//void TIMER_stop(TIMER_Handle timerHandle);
-	//void TIMER_setDecimationFactor(TIMER_Handle timerHandle,
-	//                               const uint16_t decFactor);
-	//void TIMER_setPeriod(TIMER_Handle timerHandle,
-	//                     const uint32_t period);
-	//void TIMER_reload(TIMER_Handle timerHandle);
-	//void TIMER_start(TIMER_Handle timerHandle);
-	TIMER_stop(myTimer0);
-	TIMER_setDecimationFactor(myTimer0, 0);   //0+1个时钟周期
-//	TIMER_setPeriod(myTimer0, 60000000L);
-	TIMER_setPeriod(myTimer0, 60000000L-1);    //60000000*1/60000000=1s
+    // 1. TIMER0 stop
+    TIMER_stop(myTimer0);
 
-	TIMER_reload(myTimer0);
-	TIMER_start(myTimer0);
+    // 2. set PreScaler: 0 means 1 frequency division.
+    TIMER_setPreScaler(myTimer0, 0);
+
+    // 3. set Period: 60MHz system clock, 1s timer interrupt.
+    TIMER_setPeriod(myTimer0, 60000000L-1);
+
+    // 4. reload and start TIMER0
+    TIMER_reload(myTimer0);
+    TIMER_start(myTimer0);
 
 }
 //
