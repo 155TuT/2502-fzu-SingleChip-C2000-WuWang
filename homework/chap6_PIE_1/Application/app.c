@@ -71,9 +71,9 @@ void KEY_Control_LED(void)                    //显示程序在app层
 {
     switch(key_status)
     {
-       case 1:   LED_DISPLAY1();break;   //LED1亮暗显示
-       case 2:   LED_DISPLAY2();break;   //流水灯显示
-       case 3:   LED_DISPLAY3();break;   //分组交替显示
+       case 1:   LED_DISPLAY1();break;
+       case 2:   LED_DISPLAY3();break;
+       case 3:   LED_DISPLAY2();break;
        default:  break;
     }
 
@@ -83,9 +83,9 @@ void KEY_Control_LED1(void)                    //显示程序在用户层
 {
     switch(key_status)
     {
-       case 1:   LED_DISPLAY11();break;   //LED1亮暗显示
-       case 2:   LED_DISPLAY22();break;   //流水灯显示
-       case 3:   LED_DISPLAY33();break;   //分组交替显示
+       case 1:   LED_DISPLAY11();break;
+       case 2:   LED_DISPLAY33();break;
+       case 3:   LED_DISPLAY22();break;
        default:  break;
     }
 
