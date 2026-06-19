@@ -146,7 +146,7 @@ void KEY_STATUS(void)
         if(1 == Flag1)
         {
             key_counter2++;
-            if(key_counter2 >= 8000)                              //双击等待超时，确认短按
+            if(key_counter2 >= 8000)                              //双击等待超时确认短按
             {
                 key_status = KEY_PRESS_SHORT;
                 Flag1 = 0;

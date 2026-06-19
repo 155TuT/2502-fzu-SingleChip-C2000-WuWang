@@ -59,23 +59,23 @@ void KEY_Control_LED(void)                    //按键控制简易程序
 void KEY_Control_LED_1(void)                 //短按、长按、双击
 {
 
-  if(key_status == KEY_PRESS_SHORT)         //短按：选择显示状态一
+  if(key_status == KEY_PRESS_SHORT)         //短按
   {
       KeyCount = 0;
   }
-  else if(key_status == KEY_PRESS_LONG)     //长按：选择显示状态二
+  else if(key_status == KEY_PRESS_LONG)         //长按
   {
       KeyCount = 1;
   }
-  else if(key_status == KEY_PRESS_TWICE)    //双击：在两种显示状态间切换
+
+  else if(key_status == KEY_PRESS_TWICE)    //双击
   {
       KeyCount ++;
   }
-
   if(key_status != KEY_PRESS_NO)
   {
-      key_status = KEY_PRESS_NO;            //避免重复处理
-  }
+      key_status = KEY_PRESS_NO;
+  }              //避免重复处理
 }
 
 // **************************************************************************
@@ -86,7 +86,7 @@ void KEY_Control_LED_2(void)            //按键控制两种不同显示方式
   {
       LED_Display1();
   }
-  else
+  if(KeyCount% 2== 1)
   {
       LED_Display3();
   }
@@ -103,7 +103,7 @@ void KEY_Control_LED_3(void)                     //按键抗抖动
         key_counter++;
         if( key_counter >= 65500)
             {
-                LED_toggle(LED1);
+                KeyCount = 0;
                 key_counter=0;
             }
     }
@@ -123,12 +123,12 @@ void KEY_Control_LED_3(void)                     //按键抗抖动
 //           key_counter2++;
 //           if( key_counter1 >= 100)
 //               {
-//                   LED_toggle(LED1);
+//                   KeyCount = 0;
 //                   key_counter1=0;
 //               }
 //           if( key_counter2 >= 65500)
 //               {
-//                   LED_toggle(LED2);
+//                   KeyCount = 1;
 //                   key_counter2=0;
 //               }
 //
