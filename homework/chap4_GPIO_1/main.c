@@ -25,9 +25,6 @@
 
 
 
-
-
-
 void main(void)
 {
     //1. System runtime environment
@@ -44,15 +41,20 @@ void main(void)
 	LED_GPIO_initial();
 
 
-
 	//3. PIE runtime environment(if use interrupt)
 
 	//4. the global interrupt start (if use interrupt)
 
 	//5. main LOOP
+
     for( ; ; )
     {
-        LED_Control();
+    	// call API from app.h
+
+    	LED_Control();
+
     }
 
+
 }
+

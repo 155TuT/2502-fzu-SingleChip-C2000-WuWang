@@ -39,11 +39,29 @@
 //! \param[out] None
 void LED_Control(void)
 {
-    LED_on(LED1);
-    Delay(100000L);
+	LED_on(LED1);
+    Delay(10000L);
     LED_off(LED1);
-    Delay(100000L);
+    Delay(10000L);
+
+    LED_on(LED2);
+    Delay(10000L);
+    LED_off(LED2);
+    Delay(10000L);
+//
+//    LED_on(LED3);
+//    Delay(10000L);
+//    LED_off(LED3);
+//    Delay(10000L);
+//
+//    LED_on(LED4);
+//    Delay(10000L);
+//    LED_off(LED4);
+//    Delay(10000L);
+
+
 }
+
 
 
 void LED_Control1(void)
