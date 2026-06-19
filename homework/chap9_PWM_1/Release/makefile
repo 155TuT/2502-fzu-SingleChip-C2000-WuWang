@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := E:/ti/ccs930/ccs/tools/compiler/ti-cgt-c2000_18.12.4.LTS
+CG_TOOL_ROOT := C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -182,20 +182,20 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-myproject6-pwm.cof \
+chap9_PWM_1.cof 
 
 EXE_OUTPUTS__QUOTED += \
-"myproject6-pwm.cof" \
+"chap9_PWM_1.cof" 
 
 
 # All Target
-all: myproject6-pwm.cof
+all: chap9_PWM_1.cof
 
 # Tool invocations
-myproject6-pwm.cof: $(OBJS) $(CMD_SRCS) $(LIB_SRCS) $(GEN_CMDS)
+chap9_PWM_1.cof: $(OBJS) $(CMD_SRCS) $(LIB_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: C2000 Linker'
-	"E:/ti/ccs930/ccs/tools/compiler/ti-cgt-c2000_18.12.4.LTS/bin/cl2000" -v28 -ml -mt -O2 --diag_warning=225 --display_error_number --diag_wrap=off -z -m"myproject6-pwm.map" --stack_size=0x300 --warn_sections -i"E:/ti/ccs930/ccs/tools/compiler/ti-cgt-c2000_18.12.4.LTS/lib" -i"E:/ti/ccs930/ccs/tools/compiler/ti-cgt-c2000_18.12.4.LTS/include" --reread_libs --display_error_number --diag_wrap=off --xml_link_info="myproject6-pwm_linkInfo.xml" --rom_model -o "myproject6-pwm.cof" $(ORDERED_OBJS)
+	"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt -O2 --diag_warning=225 --display_error_number --diag_wrap=off -z -m"chap9_PWM_1.map" --stack_size=0x300 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --display_error_number --diag_wrap=off --xml_link_info="chap9_PWM_1_linkInfo.xml" --rom_model -o "chap9_PWM_1.cof" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
