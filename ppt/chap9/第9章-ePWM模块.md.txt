@@ -1,0 +1,2306 @@
+## 单片机原理及应用
+
+## Principle And Application Of Microcontroller
+
+福州大学电气学院
+
+教材：《微控制器原理及应用--基于TI C2000实时微控制器》，蔡逢煌、王武、江加辉，机械工业出版社
+
+参考资料：
+
+¯TMS320F2802x, TMS320F2802xx Piccolo Technical Reference Manual.
+
+¯TMS320F2802x Microcontrollers datasheet.
+
+## 第九章
+
+## 增强型脉宽调制模块ePWM
+
+1 PWM的基础知识  
+2 C2000的ePWM  
+3 应用实例---“PWM，时间宠儿”  
+4 思考与练习9
+
+9.1.1 PWM概念  
+9.1.2 PWM信号的产生
+
+PWM是Pulse Width Modulation的缩写，即脉冲宽度调制，也就是宽度可调节的方波脉冲。
+
+相关的参数：周期、频率和占空比
+
+周期T：输出一次脉冲，即输出一次完整的高低电平的时间
+
+频率f：周期的倒数，即f=1/T
+
+占空比D：一个周期内，脉冲高电平时间与周期的比值（D=T1/T）
+
+![](images/e0b63372adf3f2989b63320fc6ab94b069d12b6dc74feaa5eef1a334609e5165.jpg)
+
+<details>
+<summary>area chart</summary>
+
+| Period | Percentage |
+|--------|----------|
+| T1     | 50%      |
+| T2     | 50%      |
+| T      | 50%      |
+</details>
+
+如图所示，假设脉冲高电平时间为1s，脉冲周期为2s，则此时脉冲占空比为50%，频率为0.5Hz。
+
+模拟电子方法：由电子元件构成PWM发生器电路。其基本原理是，由三角波或锯齿波发生器产生高频调制波，经比较器产生PWM信号。三角波或锯齿波与可调直流电源比较，产生占空比可调的PWM信号；与正弦基波比较，产生占空比按正弦规律变化的SPWM信号。
+
+优点: 成本低、各环节波形和电压值可观测、易于扩展应用电路缺点: 电路集成度低，参数调节困难，不利于产品化
+
+数字化方法：由集成电路实现PWM输出，可以进行数字化控制，是目前PWM应用的主流方法，也是MCU的PWM模块的实现方法。与硬件构成PWM信号类似，数字逻辑将锯齿波发生器等效为一个计数器Count，将可调直流电源等效为比较点Compare。
+
+数字控制产生PWM需要3个寄存器：计数器、周期值和比较值。通过配置周期值和比较值就能够产生任意频率、占空比的PWM信号。
+
+![](images/935e962eb4890ea83d6eea6c50d56ff0c0e55e6941b4c0a5de42f17e5c740493.jpg)  
+PWM的硬件调制
+
+![](images/b81b63c9f969a883aba9c6041d5e34aaf5f8ccc7878b25063ceebab5cd7bcfc7.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Time | PWM |
+|------|-----|
+| 0    | 0   |
+| 1    | 1   |
+| 2    | 0   |
+| 3    | 1   |
+| 4    | 0   |
+| 5    | 1   |
+</details>
+
+PWM的数字逻辑调制原理
+
+9.2.1 ePWM概述  
+9.2.2 时基子模块（TB）  
+9.2.3 比较子模块（CC）  
+9.2.3 动作限定子模块 （AQ）  
+9.2.3 死区子模块（DB）  
+9.2.3 PWM斩波子模块（PC）  
+9.2.3 故障联防子模块 （TZ）  
+9.2.3 事件触发与中断管理子模块（ET）  
+9.2.9 软件思维导图
+
+增强型PWM（ePWM）模块将PWM模块最小化到单一通道，资源独立，结构清晰，使用者可以很方便地进行配置和使用，而且可以通过时钟同步机制构建庞大的PWM模块群，该时钟同步机制还协同捕获（eCAP）模块，实现复杂的控制系统需求。
+
+F28027有4个ePWM模块：ePWM1、ePWM2、ePWM3和ePWM4，每个ePWM都有相同的内部逻辑电路，功能上都是相同的。
+
+![](images/b68f3cd7e08aa19f77b2dda74cae7b198ac5c28741ceebc857d47475fb1c1a2c.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+System architecture flowchart showing data flow between Time-Base, Counter Up/Down, Action Qualifier, and Event Trigger with control signals like EPWMxSYNC0 and EPWMxSYNCI.
+</details>
+
+每个ePWM模块内部包含7个子模块：时基子模块TB、比较功能子模块CC、动作限定子模块AQ、死区控制子模块DB、斩波控制子模块PC、事件触发子模块ET和故障联防子模块TZ。
+
+时基子模块（TB）：具有计数功能，子模块输出计数值、计数器等0信号（CTR=ZERO）、计数器等于周期值信号（CTR=PRD）和计数方向信号（CTR\_Dir）。
+
+比较功能子模块（CC）：把TB的计数器值与设定进行比较，输出比较相等的触发信号（CTR=CMPA、CTR=CMPB）。
+
+动作限定子模块（AQ）：综合TB子模块和CC子模块的输出信号，按预先设定的动作输出PWM波形。
+
+死区控制子模块（DB）：在上升沿或下降沿延迟输出。
+
+斩波子模块（PC）：可对PWM输出波形进行高频斩波调制。
+
+故障联防子模块（TZ）：综合各种故障信号对PWM输出进行限定。
+
+事件触发子模块（ET）综合TB子模块和CC子模块的信号，产生中断事件和ADC采样启动信号。
+
+1. 时基子模块（TB）功能：每个ePWM单元都有一个独立的时基单元，用来决定该ePWM模块相关的事件时序。通过同步输入信号可以将所有的ePWM工作在同一时基信号下，即所有的ePWM级联在一起，处于同步状态，可以看成一个整体。
+
+![](images/d0fc2658e214007ebe616276b19170d19f22388fe89581944e489e17d0359df9.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["Clock Prescale"] -->|TBCLK| B["TBPHS Phase Active Reg"]
+  B -->|16| C["Zero Dir Max clk"]
+  C --> D["Counter UP/DOWN Mode Load"]
+  D --> E["TBCTR Counter Active Reg"]
+  E --> F["TBPRD Period Shadow"]
+  F --> G["TBCTL[PRDLD"]]
+  G --> H["CBT = PRD"]
+  H --> I["AND Gate"]
+  I --> J["CPT = Zero"]
+  J --> K["CPT = CMPB"]
+  K --> L["Sync Out Select"]
+  L --> M["EPWMxSYNCO"]
+  M --> N["EPWMxSYNCI"]
+  N --> O["AND Gate"]
+  O --> P["CPT = Zero"]
+  P --> Q["CPT = CMPB"]
+  Q --> R["Disable"]
+  R --> S["TBCTL[PHSEN"]]
+  S --> T["TBCTL[CTRMODE"]]
+  T --> U["AND Gate"]
+  U --> V["CPT = Zero"]
+  V --> W["CPT = CMPB"]
+  W --> X["Disable"]
+  X --> Y["TBCTL[SYNCOSEL"]]
+  Y --> Z["EPWMxSYNCI"]
+  Z --> AA["EPWMxSYNCO"]
+  AA --> AB["Clock Prescale"]
+  AB --> AC["TBCTL[HSPCLKDIV"] TBCTL["CLKDIV"]]
+  AC --> AD["TBCTL[CLKDIV"]]
+  AD --> AE["Clock Prescale"]
+  AE --> AF["TBCLK"]
+  AF --> AG["TBCTR[15:0"]]
+  AG --> AH["TBCTR[15:0"]]
+  AH --> AI["TBCTR[15:0"]]
+  AI --> AJ["CBT = Zero"]
+  AJ --> AK["CPT = CMPB"]
+  AK --> AL["Disable"]
+  AL --> AM["TBCTL[PHSEN"]]
+  AM --> AN["TBCTL[CTRMODE"]]
+  AN --> AO["TBCTL[SWFSYNC"]]
+  AO --> AP["EPWMxSYNCI"]
+```
+</details>
+
+## 主要功能：
+
+1. 预分频功能（Clock Prescale）  
+2. PWM周期值（TBPRD）  
+3. 时基计数器TBCTR  
+4. 时基时钟同步  
+5. 时基计数器相位控制
+
+## 2.TB子模块的功能概述
+
+## 预分频功能 （Clock Prescale）
+
+系统时钟预分频后作为TB子模块的时钟信号，分频系数由寄存器TBCTL[HSPCLKDIV]和TBCTL[CLKDIV]决定。
+
+HSPCLKDIV的值为x，则如果x为0，则分频系数为1，如果x不为0，则分频系数为2x；如果CLKDIV的值为y，则分频系数为2y。计数时钟TBCLK的计算公式为：
+
+$$
+\mathrm{TBCLK} = \frac {\text {SYSCLKOUT}}{2 ^ {\mathrm{y}}} \quad (\mathrm{x=0})
+$$
+
+$$
+\mathrm{TBCLK} = \frac {\text {SYSCLKOUT}}{2 \mathrm{x} \times 2 ^ {\mathrm{y}}} \quad (\mathrm{x} > 0)
+$$
+
+对应F28027而言，本书案例设置SYSCLKOUT为60MHz，如果HSPCLKDIV=0，CLKDIV=1，则TBCLK=30MHz。
+
+## PWM周期值 （TBPRD）
+
+TBPRD有两个寄存器：影子寄存器（Period Shadow）和活动寄存器（Pe ri o d Ac ti v e）。它们具有相同的物理地址。由TBCTL[PRDLD]位控制周期寄存器的工作模式：影子寄存器模式或立即加载模式。默认情况下TBPRD采用影子寄存器模式。
+
+ 影子寄存器模式（TBCTL[PRDLD]=0时）：对TBPRD的读写操作是对影子寄存器进行的，只有当TBCTR=0时，影子寄存器的值加载到工作寄存器。这种模式避免了工作寄存器在运行过程被修改而引起系统不可预见的故障。  
+立即加载模式（TBCTL[PRDLD]=1时）：直接对活动寄存器进行读写操作。
+
+## （3） 时基计数器TBCTR
+
+时基计数器的计数模式有三种模式，分别是：增计数模式、减计数模式和增减计数模式。在这三种计数模式中，一个有效的TBCLK，时基计数器变化率为1。
+
+•增计数模式：时基计数器TBCTR从0开始加1计数，当计数值等于周期值时，时基计数器复位为0，重新开始加1计数。  
+•减计数模式：时基计数器从周期值开始减1计数，当计数值等于0时，时基计数器复位为周期值，重新开始减1计数。  
+•增减计数模式：时基计数器从0开始进行增计数模式工作，当计数器等于周期值时，时基计数器改变计数模式为减计数模式，当计数器等于0时，时基计数器再改变为增计数模式，周而复始。
+
+## （3） 时基计数器TBCTR
+
+不同模式下，时基周期T $\mathsf { \Pi } _ { \mathsf { P W M } }$ 与TBPRD设置值的关系式为：
+
+增减计数模式：
+
+$$
+\mathrm{T} _ {\mathrm{PWM}} = 2 \times \mathrm{TBPRD} \times \mathrm{T} _ {\mathrm{TBCLK}}
+$$
+
+增计数模式或减计数模式：
+
+$$
+\mathrm{T} _ {\mathrm{PWM}} = (\mathrm{TBPRD} + 1) \times \mathrm{T} _ {\mathrm{TBCLK}}
+$$
+
+![](images/dfd3dcb50b0e301ac9a49ba111b29ea79a5a8bd65e06d0523ec0697e116a91c7.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Time | Value |
+|------|-------|
+| 0    | 0     |
+| 1    | 1     |
+| 2    | 2     |
+| 3    | 3     |
+| 4    | 4     |
+| 5    | 0     |
+| 6    | 1     |
+| 7    | 2     |
+| 8    | 3     |
+| 9    | 4     |
+| 10   | 0     |
+| 11   | 1     |
+| 12   | 2     |
+| 13   | 3     |
+| 14   | 4     |
+</details>
+
+![](images/c85434d8cde5c5cf93eb822625d6874fb51192b6b3016b591430e483651ed70e.jpg)
+
+<details>
+<summary>text_image</summary>
+
+T_{PWM}
+4 3 2 1 0
+PRD
+4 3 2 1 0
+3 2 1 0
+Z 0
+</details>
+
+增计数与减计数中
+
+$$
+\mathrm{T} = (\mathrm{TBPRD} + 1) \times \mathrm{T} _ {\mathrm{TBCLK}}
+$$
+
+![](images/e8f0e725185aa5ded9af7e64737268a135f443b921967e333913d719f0dbce51.jpg)
+
+<details>
+<summary>text_image</summary>
+
+T_PWM
+TPWM
+TPWM
+0 1 2 3 4 3 2 1 0 1 2 3 4 3 2 1 0
+CTR_dir Up Down Up Down
+</details>
+
+增减计数模式中
+
+$$
+\mathrm{T} = 2 \times \mathrm{TBPRD} \times \mathrm{T} _ {\mathrm{TBCLK}}
+$$
+
+## （4） 时基时钟同步
+
+每个ePWM模块的时基时钟TBCLK是独立的，它们都是由系统时钟信号SYSCLKOUT分频得到，如何保证协同工作的ePWM模块群中TBCTR同步于TBCLK？时钟（CLK）模块提供这种同步机制。在CLK模块中，提供一个同步开关TBCLKSYNC，当这个开关有效（置位）时，所有工作的ePWM模块的时基计数器TBCTR同步于TBCLK的第一个上升沿。当然为了更好同步于TBCLK，每个ePWM模块的分频必须设置一样。
+
+ePWM模块群时钟正确设置流程:
+
+1）在CLK模块中使能ePWM时钟信号；  
+2）设置TBCLKSYNC= 0，停止所有ePWM模块的时钟；  
+3）配置ePWM模块；  
+4）设置TBCLKSYNC=1，同时启动所有ePWM模块的时钟。
+
+## （5） 时基计数器相位控制
+
+在C28x中，可以通过同步信号来构建满足设计要求的ePWM模块群层次关系。每个ePWM模块拥有一个同步信号输入(EPWMxSYNCI)和一个同步信号输出(EPWMxSYNCO)。第一个ePWM模块（ePWM1）的同步输入信号是来自芯片的引脚。同步信号还控制关联的捕获（eCAP）模块。右图给出了一种ePWM串接的同步连接。
+
+![](images/70a0538d4a7ede269182f70503aa08db76277b719737840188c82b6275046c26.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["EPWM1SYNCI ePWM1\nEPWM1SYNCO"] --> B["EPWM2SYNCI ePWM2\nEPWM2SYNCO"]
+  C["GPIO MUX"] --> B
+  D["SYNCI eCAP1"] --> A
+  B --> E["EPWM3SYNCI ePWM3\nEPWM3SYNCO"]
+  E --> F["EPWMxSYNCI ePWMx\nEPWMxSYNCO"]
+  F --> B
+```
+</details>
+
+## （5） 时基计数器相位控制
+
+同步输出信号EPWMxSYNCO就是实现ePWM模块群之间信号一致的手段。在ePWM模块同步链中，输出同步信号发生的时刻为：
+
+ 直接取自同步输入脉冲信号（EPWMxSYNCI、软件强制同步脉冲信号）  
+在CTR = Zero时产生  
+ 在CTR = CMPB时产生  
+ 主模块同步信号到从模块的时间延迟为：
+
+– 如果(TBCLK=SYSCLKOUT)，延迟时间为：2×SYSCLKOUT  
+– 如果(TBCLK!=SYSCLKOUT)，延迟时间为：1×TBCLK
+
+同步脉冲信号实现不同ePWM模块的同步，而且通过TBPHS实现各ePWM模块的相位超前和滞后的控制。当同步输入信号发生时，时基相位TBPHS装载到时基计数器TBCTR，装载时刻一致，同步实现。如果每个ePWM模块TBPHS都为零，那么在同步输入信号作用下，每个ePWM模块的TBCTR都同时被复位为零。如果ePWM模块的TBPHS不为零，那么在同步信号作用下，TBPHS的值就装载进TBCTR，各个ePWM模块就存在计数初值的不同，也就是存在相位差。
+
+## （5） 时基计数器相位控制
+
+在增减计数模式中，还可以通过配置TBCTL[PHSDIR]实现同步以后时基计数器TBCTR的计数方向，新方向与同步前计数方向无关联。在增计数模式或减计数模式，没有这个功能。
+
+![](images/8dac887965b913e6810e55e570aa177334434ff25ab881d696dc2723bc3877a4.jpg)
+
+<details>
+<summary>timing diagram</summary>
+
+| Signal          | Value |
+|-----------------|-------|
+| TBPRD           | 0     |
+| TBPHS           | 0     |
+| EPWMxSYNCI       | 0     |
+| CTR_dir         | 0     |
+| CTR = zero      | 0     |
+| CTR = PRD       | 0     |
+| CNT_max         | 0     |
+</details>
+
+时基增计数模式波形
+
+![](images/40fc17f410a0b27a09d988fe9ee96f5a78fb98a61069ed3c810b1a7e7a684aac.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal          | Value |
+|-----------------|-------|
+| TBPRD           | 15:0  |
+| TBPHS           | 0x000 |
+| EPWMxSYNCI       | 15:0  |
+| CTR_dir         | 15:0  |
+| CTR = zero      | 15:0  |
+| CTR = PRD       | 15:0  |
+| CNT_max         | 15:0  |
+</details>
+
+时基增计数模式波形
+
+## （5） 时基计数器相位控制
+
+![](images/42f2218d50e1c7a376d57594f9138f0634139d830b0b266f758d6c1e6b5d40e0.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal          | Value |
+|-----------------|-------|
+| TBPRD           | 0xFFFF |
+| TBPHS           | 0x0000 |
+| EPWMxSYNCI       | UP    |
+| CTR_dir         | DOWN  |
+| CTR = zero      | UP    |
+| CTR = PRD       | DOWN  |
+| CNT_max         | UP    |
+</details>
+
+时基增减计数模式波形（同步后减计数）
+
+![](images/89b48d9b16efa4dd292efbe33dcdd116709e86db9f8f4d9137dbb497ab92b5d7.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal          | Value |
+|-----------------|-------|
+| UP              | UP    |
+| DOWN            | DOWN  |
+| UP              | UP    |
+| DOWN            | DOWN  |
+| UP              | UP    |
+| DOWN            | DOWN  |
+| CTR_dir         | UP    |
+| CTR = zero      | UP    |
+| CTR = PRD       | UP    |
+| CNT_max         | UP    |
+</details>
+
+时基增减计数模式波形（同步后增计数）
+
+## 3. TB子模块的软件架构
+
+## 寄存器及驱动函数
+
+右表为TB子模块的相关寄存器及对应的驱动函数名。需要指出的是，ePWM1至ePWM4的起始地址分别为0x6800、0 x 6 8 4 0 、 0 x 6 8 8 0 、0x68C0，各子模块寄存器地址减去起始地址即为偏移地址。
+
+<table><tr><td>寄存器</td><td>描述</td><td>偏移地址</td><td>驱动函数</td><td>功能</td></tr><tr><td rowspan="10">TBCTL</td><td rowspan="10">时基控制寄存器</td><td rowspan="10">0x0000</td><td>PWM_setClkDiv</td><td>配置PWM时钟频率</td></tr><tr><td>PWM_setHighSpeedClkDiv</td><td>配置PWM时钟频率</td></tr><tr><td>PWM_setCounterMode</td><td>配置计数器运行模式</td></tr><tr><td>PWM_setRunMode</td><td>配置时基运行模式</td></tr><tr><td>PWM_setPeriodLoad</td><td>配置PWM周期装载模式</td></tr><tr><td>PWM_setSwSync</td><td>设置软件同步</td></tr><tr><td>PWM_enableCounterLoad</td><td>允许计数器同步</td></tr><tr><td>PWM_disableCounterLoad</td><td>禁止计数器同步</td></tr><tr><td>PWM_setSyncMode</td><td>配置计数器同步模式</td></tr><tr><td>PWM_setPhaseDir</td><td>配置同步事件后计数方向</td></tr><tr><td>TBSTS</td><td>时基状态寄存器</td><td>0x0001</td><td></td><td></td></tr><tr><td>TBPHS</td><td>时基相位寄存器</td><td>0x0003</td><td>PWM_setPhase</td><td>配置移相大小</td></tr><tr><td>TBCTR</td><td>时基计数寄存器</td><td>0x0004</td><td>PWM_setCount</td><td>设置计数器值</td></tr><tr><td>TBPRD</td><td>时基周期寄存器</td><td>0x0005</td><td>PWM_setPeriod</td><td>设置周期值</td></tr></table>
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+时基子模块作为ePWM最基本的模块，PWM的时钟频率、周期值、模块群的时钟同步等功能均需通过时基子模块配置。驱动函数通过结构体指针myPwmx对寄存器进行读写操作。结构体指针的初始化和使用方法参见第4章。ePWMx的驱动函数由两个文件组成，分别是F2802x\_Component/source/pwm.c和F2802x\_Component/include/pwm.h。表9-2\~表9-10给出了时基子模块驱动函数的描述和示例。
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-2函数PWM\_setClkDiv
+
+<table><tr><td>函数名</td><td>PWM_setClkDiv</td></tr><tr><td>函数原型</td><td>PWM_setClkDiv(PWM_Handle pwmHandle, const PWM_ClkDiv_e clkDiv)</td></tr><tr><td>功能描述</td><td>PWM时钟分频</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>PWM分频系数,为库函数枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//CLKDIV设置的分频系数为2分频
+
+PWM\_setClkDiv(myPwm1, PWM\_ClkDiv\_by\_2);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-3 函数PWM\_setHighSpeedClkDiv
+
+<table><tr><td>函数名</td><td>PWM_setHighSpeedClkDiv</td></tr><tr><td>函数原型</td><td>PWM_setHighSpeedClkDiv(PWM_Handle pwmHandle, const PWM_HspClkDiv_e clkDiv)</td></tr><tr><td>功能描述</td><td>PWM时钟分频</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>PWM分频系数,为库函数枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//HSPCLKDIV设置的分频系数为1分频
+
+PWM\_setHighSpeedClkDiv(myPwm1, PWM\_HspClkDiv\_by\_1);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-4 函数PWM\_setCounterMode
+
+<table><tr><td>函数名</td><td>PWM_setCounterMode</td></tr><tr><td>函数原型</td><td>PWM_setCounterMode(PWM_Handle pwmHandle, const PWM_CounterMode_e counterMode)</td></tr><tr><td>功能描述</td><td>计数器方向选择</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>计数器方向,为库函数枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//ePWM1为增计数模式
+
+PWM\_setCounterMode(myPwm1, PWM\_CounterMode\_Up);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-5 函数PWM\_setRunMode
+
+<table><tr><td>函数名</td><td>PWM_setRunMode</td></tr><tr><td>函数原型</td><td>PWM_setRunMode(PWM_Handle pwmHandle, const PWM_CounterMode_e counterMode)</td></tr><tr><td>功能描述</td><td>仿真时PWM工作方式选择</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>PWM工作方式选择,为库函数枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//仿真时，PWM模块正常运行
+
+PWM\_setRunMode(myPwm1, PWM\_RunMode\_FreeRun);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-6 函数PWM\_setPeriodLoad
+
+<table><tr><td>函数名</td><td>PWM_setPeriodLoad</td></tr><tr><td>函数原型</td><td>PWM_setPeriodLoad(PWM_Handle pwmHandle, const PWM_PeriodLoad_e periodLoad)</td></tr><tr><td>功能描述</td><td>PWM周期值装载模式选择:影子模式或立即模式</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>周期装载方式,为库函数枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//ePWM1的周期值装置模式为影子模式
+
+PWM\_setPeriodLoad(myPwm1, PWM\_PeriodLoad\_Shadow);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-7 函数PWM\_enableCounterLoad
+
+<table><tr><td>函数名</td><td>PWM_enableCounterLoad</td></tr><tr><td>函数原型</td><td>PWM_enableCounterLoad(PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>同步信号发生时,允许计数器装载初始相位值(TBPHS)</td></tr><tr><td>输入参数</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//允许ePWM2收到同步信号后计数器装载初始相位值（TBPHS）
+
+PWM\_enableCounterLoad(myPwm2);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-8 函数PWM\_disableCounterLoad
+
+<table><tr><td>函数名</td><td>PWM_disableCounterLoad</td></tr><tr><td>函数原型</td><td>PWM_disableCounterLoad(PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>禁止计数器装载初始相位值(TBPHS)</td></tr><tr><td>输入参数</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//禁止ePWM1计数器装载初始相位值（TBPHS）
+
+PWM\_disableCounterLoad(myPwm1);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-9 函数PWM\_setSyncMode
+
+<table><tr><td>函数名</td><td>PWM_setSyncMode</td></tr><tr><td>函数原型</td><td>PWM_setSyncMode(PWM_Handle pwmHandle, const PWM_SyncMode_e syncMode)</td></tr><tr><td>功能描述</td><td>设置ePWMx同步脉冲信号输出(EPWMxSYNCO)的模式</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>同步脉冲信号输出模式,为库函数枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//计数器等于0时ePWM2输出同步脉冲信号EPWM2SYNCO
+
+PWM\_setSyncMode(myPwm2,PWM\_SyncMode\_CountEqualZero);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-10 函数PWM\_setPhase
+
+<table><tr><td>函数名</td><td>PWM_setPhase</td></tr><tr><td>函数原型</td><td>PWM_setPhase(PWM_Handle pwmHandle, const uint16_t phase)</td></tr><tr><td>功能描述</td><td>设置PWMx相位TBPHS</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>16位相位值</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//TBPHS=120，即ePWM1计数器的初始相位值为120，收到同步信号时装载
+
+PWM\_setPhase(myPwm1,120);
+
+## 3. TB子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-11 函数PWM\_setPeriod
+
+<table><tr><td>函数名</td><td>PWM_setPeriod</td></tr><tr><td>函数原型</td><td>PWM_setPeriod(PWM_Handle pwmHandle, const uint16_t period)</td></tr><tr><td>功能描述</td><td>设置周期值</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>16位无符号整型值:0~65535</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//PWM1的周期值1200，如果TB时钟频率为60MHz，则PWM周期为1200/60MHz=20μs
+
+PWM\_setPeriod(myPwm1, 1200);
+
+## CC子模块的功能
+
+CC子模块主要功能是对TB子模块的计数器值TBCTR与给定的比较值进行比较，产生比较相等的事件，该事件作为后续AQ子模块的触发事件。有两个比较寄存器CMPA和CMPB，对应两个事件：
+
+（1）CTR = CMPA，也就是计数寄存器TACTR的值等于比较寄存器CMPA；  
+（2）CTR = CMPB，也就是计数寄存器TACTR的值等于比较寄存器CMPB。
+
+## CC子模块的功能
+
+![](images/b9121d8fc897b937ae58df7f8f8a9245c00a34f7db65b1649647f347608d5bba.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["Time Base (TB) Module"] --> B["Shadow load"]
+  B --> C["CMPCTL[LOADAMODE"]]
+  C --> D["TBCTR[15:0"]]
+  D --> E["CMPA[15:0"]]
+  E --> F["CMPCTL [SHDWAFULL"]]
+  F --> G["CMPCTL [SHDWAMODE"]]
+  G --> H["Action Qualifier (AQ) Module"]
+  H --> I["CMPCTL[SHDWBFULL"]]
+  I --> J["CMPCTL[SHDWBMODE"]]
+  J --> K["CMPCTL[LOADBMODE"]]
+  K --> L["Shadow load"]
+  L --> M["CMPCTL[LOADABMODE"]]
+  M --> N["TBCTR[15:0"]]
+  N --> O["CMPB[15:0"]]
+  O --> P["CMPCTL [SHDWAFULL"]]
+  P --> Q["CMPCTL [SHDWAMODE"]]
+  Q --> R["CMPCTL [SHDWBFULL"]]
+  R --> S["CMPCTL[SHDWBMODE"]]
+  S --> T["CMPCTL[SHDWBFULL"]]
+  T --> U["CMPCTL[SHDWBMODE"]]
+  U --> V["CMPCTL[SHDWBFULL"]]
+  V --> W["CMPCTL[SHDWBMODE"]]
+  W --> X["CMPCTL[SHDWBFULL"]]
+  X --> Y["CMPCTL[SHDWBMODE"]]
+  Y --> Z["CMPCTL[SHDWBFULL"]]
+  Z --> AA["CMPCTL[SHDWBMODE"]]
+  AA --> AB["CMPCTL[SHDWBFULL"]]
+  AB --> AC["CMPCTL[SHDWBMODE"]]
+  AC --> AD["CMPCTL[SHDWBFULL"]]
+  AD --> AE["CMPCTL[SHDWBMODE"]]
+  AE --> AF["CMPCTL[SHDWBFULL"]]
+  AF --> AG["CMPCTL[SHDWBMODE"]]
+  AG --> AH["CMPCTL[SHDWBFULL"]]
+  AH --> AI["CMPCTL[SHDWBMODE"]]
+  AI --> AJ["CMPCTL[SHDWBFULL"]]
+  AJ --> AK["CMPCTL[SHDWBMODE"]]
+  AK --> AL["CMPCTL[SHDWBFULL"]]
+  AL --> AM["CMPCTL[SHDWBMODE"]]
+  AM --> AN["CMPCTL[SHDWBFULL"]]
+  AN --> AO["CMPCTL[SHDWBMODE"]]
+  AO --> AP["CMPCTL[SHDWBFULL"]]
+  AP --> AQ["CMPCTL[SHDWBMODE"]]
+  AQ --> AR["CMPCTL[SHDWBFULL"]]
+  AR --> AS["CMPCTL[SHDWBMODE"]]
+```
+</details>
+
+比较功能子模块功能框图
+
+## 2. CC子模块的功能概述
+
+比较功能子模块可以设置两个比较值（CMPA、CMPB）。它们分别有两个寄存器：影子寄存器和工作寄存器。影子寄存器和工作寄存器具有相同的物理地址。由CMPCTL[SHDWAMODE]或CMPCTL[SHDWBMODE]位控制比较值寄存器的工作模式：影子寄存器模式或立即加载模式。以CMPA为例说明：
+
+（1）影子寄存器模式（CMPCTL[SHDWAMODE]=0）：对CMPA的写操作是对影子寄存器进行的。在设置的特殊时刻，影子寄存器的值加载到工作寄存器。这种模式避免了工作寄存器在运行过程被修改引起系统不可预见的故障。加载的特殊时刻由CMCTRL[LOADMODE]决定，可以在CTR=0时刻、CTR=PRD时刻或两者都可以。  
+（2）立即加载模式（CMPCTL[SHDWAMODE]=1）：直接对工作寄存器进行写操作。
+
+比较功能子模块可以产生两个独立的比较事件，对于增计数或减计数，在一个PWM周期内，比较事件只发生一次。对于增减计数模式，在一个PWM周期内，如果比较寄存器的值在0\~TBPRD之间，在一个PWM周期内，比较事件发生两次。
+
+## 2. CC子模块的功能概述
+
+在增计数模式、减计数模式和增减计数模式下，比较功能子模块如何产生比较相等事件见下图，其中考虑了同步输入信号的影响。
+
+![](images/4c275e017dce9ad69ca8cf44fa41ced086729b861e3ebc5b67c4126889bc8d67.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal     | Value     |
+| ---------- | --------- |
+| TBPRD      | 0xFFFF   |
+| CMPA       | 0xFFFF   |
+| CMPB       | 0xFFFF   |
+| TBPHS      | 0xFFFF   |
+| EPWMxSYNCI  | 0x0000    |
+| CTR = CMPA | 0x0000    |
+| CTR = CMPB | 0x0000    |
+</details>
+
+增计数产生比较相等事件
+
+![](images/2b746509419de49cd0085c8b4dd0dca8f902557e8eff693081ecf0df25aef10d.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal     | Value     |
+| ---------- | --------- |
+| TBPRD      | 0xFFFF   |
+| CMPA       | 0xFFFF   |
+| CMPB       | 0xFFFF   |
+| TBPHS      | 0xFFFF   |
+| EPWMxSYNCI  | 0x0000    |
+| CTR = CMPA | 0x0000    |
+| CTR = CMPB | 0x0000    |
+</details>
+
+减计数产生比较相等事件
+
+## 2. CC子模块的功能概述
+
+在增计数模式、减计数模式和增减计数模式下，比较功能子模块如何产生比较相等事件见下图，其中考虑了同步输入信号的影响。
+
+![](images/4918d41d022ce27c77d2b04c6874ada8bbb25f07c137709cdcf663823096fa2b.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal        | Value     |
+| ------------- | --------- |
+| TBCTR         | 0xFFFF   |
+| TBPRD         | 0xFFFF   |
+| CMPA          | 0xFFFF   |
+| CMPB          | 0xFFFF   |
+| TBPHS         | 0x0000    |
+| EPWMxSYNCI     | 0x0000    |
+| CTR = CMPB    | 0x0000    |
+| CTR = CMPA    | 0x0000    |
+</details>
+
+增减计数比较事件（同步后减计数）
+
+![](images/3e75323cf47b2b4283f5e6a3d2e342e3842f8aa8500d50df1269da3627f0be7a.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal     | Value     |
+| ---------- | --------- |
+| TBPRD      | 0xFFFF   |
+| CMPA       | 0xFFFF   |
+| CMPB       | 0xFFFF   |
+| TBPHS      | 0xFFFF   |
+| EPWMxSYNCI | 0x0000    |
+| CTR = CMPB | 0x0000    |
+| CTR = CMPA | 0x0000    |
+</details>
+
+增减计数比较事件（同步后增计数）
+
+## 3. CC子模块的软件架构
+
+## 寄存器及驱动函数
+
+下表为CC子模块的相关寄存器及其对应的驱动函数名。
+
+<table><tr><td>寄存器</td><td>描述</td><td>偏移地址</td><td>驱动函数</td><td>功能</td></tr><tr><td>CMPC TL</td><td>比较模块控制寄存器</td><td>0x0007</td><td>PWM_setShadowMode_CmpAPWM_setShadowMode_CmpBPWM_setLoadMode_CmpAPWM_setLoadMode_CmpB</td><td>比较点A影子装载模式比较点B影子装载模式配置比较点A装载时刻配置比较点B装载时刻</td></tr><tr><td>CMPA</td><td>比较器A寄存器</td><td>0x0009</td><td>PWM_setCmpA</td><td>配置比较寄存器A值</td></tr><tr><td>CMPB</td><td>比较器B寄存器</td><td>0x000A</td><td>PWM_setCmpB</td><td>配置比较寄存器B值</td></tr></table>
+
+## 3. CC子模块的软件架构
+
+## （2） 驱动函数描述
+
+CC子模块能够对PWM的占空比进行配置。表9-13\~表9-15给出了CC子模块驱动函数的描述和示例。
+
+表9-13 函数PWM\_setShadowMode\_CmpA
+
+<table><tr><td>函数名</td><td>PWM_setShadowMode_CmpA</td></tr><tr><td>函数原型</td><td>PWM_setShadowMode_CmpA(PWM_Handle pwmHandle, const PWM_ShadowMode_e shadowMode)</td></tr><tr><td>功能描述</td><td>设置比较点A为影子装载模式或立即装载模式</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>装载模式选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//PWM1的比较点A装载模式为影子装载模式
+
+PWM\_setShadowMode\_CmpA(myPwm1, PWM\_ShadowMode\_Shadow);
+
+## 3. CC子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-14 函数PWM\_setLoadMode\_CmpA
+
+<table><tr><td>函数名</td><td>PWM_setLoadMode_CmpA</td></tr><tr><td>函数原型</td><td>PWM_setLoadMode_CmpA(PWM_Handle pwmHandle, const PWM_LoadMode_e loadMode)</td></tr><tr><td>功能描述</td><td>影子寄存器模式时,设置比较点A的装载时刻</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>装载时刻选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//PWM1的比较点A在TB计数器过零点时装载
+
+PWM\_setLoadMode\_CmpA(myPwm1, PWM\_LoadMode\_Zero);
+
+## 3. CC子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-15 函数PWM\_setCmpA
+
+<table><tr><td>函数名</td><td>PWM_setCmpA</td></tr><tr><td>函数原型</td><td>PWM_setCmpA (PWM_Handle pwmHandle, const uint16_t pwmData)</td></tr><tr><td>功能描述</td><td>设置比较点A寄存器的值</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>16位CMPA值</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置PWM1的比较点A寄存器：CMPA=1000
+
+PWM\_setCmpA(myPwm1,1000);
+
+## 1. AQ子模块的功能
+
+AQ子模块在PWM波形生成的环节中起到了关键作用，它决定了相应事件发生时应该输出什么样的电平。该模块是基于事件驱动的，可以认为该子模块输入的就是事件，输出的是动作。每个子模块有两路输出EPWMA和EPWMB，对这两路输出动作的设定是完全独立的，任何一个事件都可以对EPWMA或EPWMB产生任何动作。
+
+![](images/ff51db0b9941fbf024b18ee5bf6bea71a6b83ae5ac0764191a8c49efc187a390.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  A["TBCLK"] --> B["Action-qualifier (AQ) Module"]
+  C["CTR = PRD"] --> B
+  D["CTR = Zero"] --> B
+  E["CTR = CMPA"] --> F["AQCTLA[15:0"] Action-qualifier control A]
+  G["CTR = CMPB"] --> H["AQCTLB[15:0"] Action-qualifier control B]
+  I["CTR dir"] --> J["AQSFRC[15:0"] Action-qualifier S/W force]
+  K["AQCSFRC[3:0"] (shadow) continuous S/W force] --> L["AQCSFRC[3:0"] (active) continuous S/W force]
+  M["EPWMA"] --> N["Output"]
+  O["EPWMB"] --> P["Output"]
+```
+</details>
+
+## 2.AQ子模块的功能概述
+
+## 触发事件
+
+AQ子模块的输入事件有4种，事件发生时触发AQ子模块，分别是：
+
+1）CTR = PRD，计数器寄存器TBCTR的值与周期寄存器TBPRD相等时；  
+2）CTR = Zero，计数器寄存器TBCTR的值等于0时；  
+3）CTR = CMPA，计数器寄存器TBCTR的值等于比较寄存器CMPA；  
+4）CTR = CMPB，计数器寄存器TBCTR的值等于比较寄存器CMPB
+
+CTR\_dir为计数方向，将计数方向输入给AQ子模块，能够把计数比较事件细分为增计数情形的计数比较事件（CAU和CBU）和减计数情形的计数比较事件（CAD和CBD）。
+
+除了以上外部事件外，还可以用软件强制触发，通过AQSFRC、AQCSFRC控制。
+
+## 2.AQ子模块的功能概述
+
+## （2） 动作输出
+
+AQ子模块控制在触发事件产生时，2路PWM输出EPWMxA和EPWMxB表现出何种行为。PWM输出EPWMxA 和 EPWMxB可以设置为以下的动作：
+
+1）置高，EPWMxA或EPWMxB输出高电平；  
+2）置低，EPWMxA或EPWMxB输出低电平；  
+3）翻转，EPWMxA或EPWMxB输出电平与之前的电平相反；  
+4）无动作，EPWMxA或EPWMxB的输出状态不变。
+
+动作设置对PWM输出EPWMxA和EPWMxB是独立的，任何有效事件都能用来产生预定的动作，例如事件CTR=CMPA和CTR=CMPB都可以作用于EPWMxA，不要认为A的事件只能用来产生A的PWM输出。
+
+## 2.AQ子模块的功能概述
+
+## （3）PWM动作优先级控制
+
+AQ子模块在同一时刻可能接收到多个触发事件，在这种情况下，AQ子模块如何响应呢？和中断优先级类似，AQ在硬件上也设计有事件的优先级。在众多事件中，软件强制的优先级始终是最高的。
+
+<table><tr><td rowspan="8">右表给出了在增减计数模式下事件的优先级,优先级1代表最高优先级,优先级6代表最低优先级,优先级在TBCTR工作方向不同时略有差别。</td><td>优先级</td><td>增计数方向</td><td>减计数方向</td></tr><tr><td></td><td>TBCTR = 0增加到 TBCTR = TBPRD</td><td>TBCTR = TBPRD 减少到 TBCTR = 0</td></tr><tr><td>1(最高)</td><td>软件强制事件</td><td>软件强制事件</td></tr><tr><td>2</td><td>计数器的值等于CMPB (CBU)</td><td>计数器的值等于CMPB (CBD)</td></tr><tr><td>3</td><td>计数器的值等于CMPA (CAU)</td><td>计数器的值等于CMPA (CAD)</td></tr><tr><td>4</td><td>计数器的值等0</td><td>计数器的值等于TBPRD</td></tr><tr><td>5</td><td>计数器的值等于CMPB (CBD)</td><td>计数器的值等于CMPB (CBU)</td></tr><tr><td>6(最低)</td><td>计数器的值等于CMPA (CAD)</td><td>计数器的值等于CMPA (CAU)</td></tr></table>
+
+## 2.AQ子模块的功能概述
+
+## （3）PWM动作优先级控制
+
+右表给出了增计数模式下事件的优先级，由于在增计数模式，减计数比较事件不会发生，因此列表中没有这些事件。
+
+<table><tr><td>优先级</td><td>事件</td></tr><tr><td>1(最高)</td><td>软件强制事件</td></tr><tr><td>2</td><td>计数器的值等于TBPRD</td></tr><tr><td>3</td><td>计数器的值等于CMPB(CBU)</td></tr><tr><td>4</td><td>计数器的值等于CMPA(CAU)</td></tr><tr><td>5(最低)</td><td>计数器的值等于0</td></tr></table>
+
+## 2.AQ子模块的功能概述
+
+## （3）PWM动作优先级控制
+
+右表给出减计数模式下事件的优先级，也同样没有考虑增计数比较事件。
+
+<table><tr><td>Priority Level</td><td>Event</td></tr><tr><td>1 (最高)</td><td>软件强制事件</td></tr><tr><td>2</td><td>计数器的值等于0</td></tr><tr><td>3</td><td>计数器的值等于CMPB (CBD)</td></tr><tr><td>4</td><td>计数器的值等于CMPA (CAD)</td></tr><tr><td>5 (最低)</td><td>计数器的值等于TBPRD</td></tr></table>
+
+## 2.AQ子模块的功能概述
+
+## （4） 软件强制事件（AQSFRC、AQCSFRC）
+
+可以通过设置寄存器，产生一个软件强制事件。该软件强制事件可以是单次作用，也可以是连续作用。如果是单次作用，那么后续的事件将对输出进行更新。如果是连续作用，PWM输出将持续为低电平或高电平。
+
+在连续作用模式下，AQCSFRC动作寄存器有两种装载方式：影子装载方式和立即装载方式。影子装载方式可以设置在计数器的值过零时刻、周期时刻或两者之一装载。
+
+## 3.AQ子模块的软件架构
+
+## 寄存器及驱动函数
+
+下表为AQ子模块的相关寄存器及其对应的驱动函数名。
+
+<table><tr><td>寄存器</td><td>描述</td><td>偏移地址</td><td>驱动函数</td><td>功能</td></tr><tr><td>AQCTLA</td><td>动作限定器控制输出A寄存器(EPWMxA)</td><td>0x000B</td><td>PWM_setActionQual_CntDown_CmpA_PwmAPWM_setActionQual_CntDown_CmpB_PwmAPWM_setActionQual_CntUp_CmpA_PwmAPWM_setActionQual_CntUp_CmpB_PwmAPWM_setActionQual_Period_PwmAPWM_setActionQual_Zero_PwmA</td><td>减计数,Counter=CMPA时,PWMA动作减计数,Counter=CMPB时,PWMA动作增计数,Counter=CMPA时,PWMA动作增计数,Counter=CMPB时,PWMA动作Counter=周期值时,PWMA动作Counter=0时,PWMA动作</td></tr><tr><td>AQCTRLB</td><td>动作限定器控制输出B寄存器(EPWMxB)</td><td>0x000C</td><td>PWM_setActionQual_CntDown_CmpA_PwmBPWM_setActionQual_CntDown_CmpB_PwmBPWM_setActionQual_CntUp_CmpA_PwmBPWM_setActionQual_CntUp_CmpB_PwmBPWM_setActionQual_Period_PwmBPWM_setActionQual_Zero_PwmB</td><td>减计数,Counter=CMPA时,PWMB动作减计数,Counter=CMPB时,PWMB动作增计数,Counter=CMPA时,PWMA动作增计数,Counter=CMPB时,PWMA动作Counter=周期值时,PWMA动作Counter=0时,PWMA动作</td></tr><tr><td>AOSFRC</td><td>动作限定器软件强制寄存器</td><td>0x000D</td><td></td><td></td></tr><tr><td>AQCSFRC</td><td>动作限定器连续软件强制寄存器</td><td>0x000E</td><td></td><td></td></tr></table>
+
+## 3.AQ子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-20\~表9-23给出了AQ子模块驱动函数的描述和示例。
+
+表9-20 函数PWM\_setActionQual\_CntDown\_CmpA\_PwmA
+
+<table><tr><td>函数名</td><td>PWM_setActionQual_CntDown_CmpA_PwmA</td></tr><tr><td>函数原型</td><td>PWM_setActionQual_CntDown_CmpA_PwmA(PWM_Handle pwmHandle, const PWM_ActionQual_e actionQual)</td></tr><tr><td>功能描述</td><td>计数器为减计数,其值等于CMPA时,EPWMxA动作设置</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>EPWMx动作类型,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//计数器为减计数，其值等于CMPA时，EPWM1A置高
+
+PWM\_setActionQual\_CntDown\_CmpA\_PwmA(myPwm1，PWM\_ActionQual\_Set)
+
+## 3.AQ子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-21 函数PWM\_setActionQual\_CntDown\_CmpB\_PwmA
+
+<table><tr><td>函数名</td><td>PWM_setActionQual_CntDown_CmpB_PwmA</td></tr><tr><td>函数原型</td><td>PWM_setActionQual_CntDown_CmpB_PwmA(PWM_Handle pwmHandle, const PWM_ActionQual_e_actionQual)</td></tr><tr><td>功能描述</td><td>计数器为减计数,其值等于CMPB时,EPWMxA动作设置</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>EPWMx动作类型,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+## 示例：
+
+//计数器为减计数，其值等于CMPB时，EPWM1A置低
+
+PWM\_setActionQual\_CntDown\_CmpB\_PwmA(myPwm1，PWM\_ActionQual\_Clear)
+
+## 3.AQ子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-22 函数PWM\_setActionQual\_Period\_PwmA
+
+<table><tr><td>函数名</td><td>PWM_setActionQual_Period_PwmA</td></tr><tr><td>函数原型</td><td>PWM_setActionQual_Period_PwmA(PWM_Handle pwmHandle, const PWM_ActionQual_e actionQual)</td></tr><tr><td>功能描述</td><td>计数器值等于TBPRD时,EPWMxA动作设置</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>EPWMx动作类型,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//计数器值等于TBPRD时，EPWM1A翻转
+
+PWM\_setActionQual\_Period\_PwmA(myPwm1, PWM\_ActionQual\_Toggle);
+
+## 3.AQ子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-23 函数PWM\_setActionQual\_Zero\_PwmA
+
+<table><tr><td>函数名</td><td>PWM_setActionQual_Zero_PwmA</td></tr><tr><td>函数原型</td><td>PWM_setActionQual_Zero_PwmA(PWM_Handle pwmHandle, const PWM_ActionQual_e_actionQual)</td></tr><tr><td>功能描述</td><td>计数器值等于0时,EPWMxA动作设置</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>EPWMx动作类型,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//计数器值等于0时，EPWM1A置高
+
+PWM\_setActionQual\_Zero\_PwmA(myPwm1, PWM\_ActionQual\_Set);
+
+## 3.AQ子模块的软件架构
+
+## （3） 应用实例
+
+通过TB、CC和AQ这3个子模块的设置，就可以输出PWM波形。以下给出几种常见的PWM波形及其配置方法。
+
+## ）计数增减模式下输出对称PWM波形
+
+图9-19为增减计数模式下产生对称PWM波形。通过比较值设置实现PWM从0%到100%的调制。在这个例子里面，CMPA作为比较单元，CMPA的值增大，PWM输出高电平的比例增加，反之，CMPA的值减小，PWM输出高电平的比例减少。当CMPA= 0时，PWM输出低电平，即占空比为0%；当CMPA = TBPRD时，PWM输出高电平，即占空比为100%。
+
+## 1）计数增减模式下输出对称PWM波形
+
+![](images/248736c93462e9db0ec3c2cab50672f02f750d141700afe77afb47269c3009ed.jpg)
+
+<details>
+<summary>timing diagram</summary>
+
+| Mode | Count | Condition | Value |
+| --- | --- | --- | --- |
+| Up | 1 | TBCTR | 0 |
+| Down | 3 | TBCTR | 2 |
+| Up | 3 | TBCTR | 3 |
+| Down | 2 | TBCTR | 2 |
+| Up | 0 | TBCTR | 1 |
+| Up | 1 | TBCTR | 0 |
+| Down | 2 | TBCTR | 2 |
+| Up | 3 | TBCTR | 3 |
+| Down | 3 | TBCTR | 2 |
+| Up | 1 | TBCTR | 1 |
+| Up | 1 | TBCTR | 0 |
+| Down | 2 | TBCTR | 1 |
+| Up | 0 | TBCTR | 0 |
+| Down | 0 | TBCTR | 0 |
+| Case<1: CMPA=<4.0%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<1: CMPA=<4.0%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<2: CMPA=<3.25%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<2: CMPA=<3.25%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<3: CMPA=<2.50%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<3: CMPA=<2.50%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<3: CMPA=<1.75%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<3: CMPA=<1.75%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMBxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMBxB | - |
+| Case<4: CMPA=<0,<100%<Duty | - | EPWMxA/EPWMBxB | - |
+</details>
+
+图9-19 增减计数模式下产生对称PWM波形
+
+## 1）计数增减模式下输出对称PWM波形
+
+![](images/d25c0750c2b1537324c73418ef68a94397ec51f99711e25f8082b5221ec0a0d4.jpg)  
+图9-20 增减模式、独立调制，双边对称波形
+
+## 配置函数：
+
+```txt
+PWM_setActionQual_CntUp_CmpA_PwmA(myPwm1, PWM_ActionQual_Set); //CAU, PWM1A置高
+PWM_setActionQual_CntDown_CmpA_PwmA(myPwm1, PWM_ActionQual_Clear); //CAD, PWM1A置低
+PWM_setActionQual_CntUp_CmpB_PwmB(myPwm1, PWM_ActionQual_Set); //CBU, PWM1B置高
+PWM_setActionQual_CntDown_CmpB_PwmB(myPwm1, PWM_ActionQual_Clear); //CBD, PWM1B置低
+```
+
+## 1）计数增减模式下输出对称PWM波形
+
+![](images/d5f3b74e22812305fef0bd0664f5f92d68e8fb50384c3f967bc8c9043f974dbd.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Channel | Value |
+|---------|-------|
+| EPWMxA  | CA    |
+| EPWMxB  | CB    |
+| TBPRD   | TBCTR |
+| EPWMxA  | CA    |
+| EPWMxB  | CB    |
+| TBPRD   | CA    |
+| EPWMxA  | CA    |
+| EPWMxB  | CB    |
+| TBPRD   | CA    |
+| EPWMxB  | CB    |
+</details>
+
+图9-21 增减模式、独立调制，双边对称波形，互补型
+
+## 配置函数：
+
+```txt
+PWM_setActionQual_CntUp_CmpA_PwmA(myPwm1, PWM_ActionQual_Set); //CAU, PWM1A置高
+PWM_setActionQual_CntDown_CmpA_PwmA(myPwm1, PWM_ActionQual_Clear); //CAD, PWM1A置低
+PWM_setActionQual_CntUp_CmpB_PwmB(myPwm1, PWM_ActionQual_Clear); //CBU, PWM1B置低
+PWM_setActionQual_CntDown_CmpB_PwmB(myPwm1, PWM_ActionQual_Set); //CBD, PWM1B置高
+```
+
+## 非对称波形
+
+![](images/72e58adbccd03f311c0002e055d317b9d8db51a338ca3690e13b51e01cfebbd0.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["TBCTR"] --> B["EPWMxA"]
+  B --> C["EPWMxB"]
+    subgraph TBCTR
+  D["Z ↑"] --> E["P ×"]
+  E --> F["CB ×"]
+  F --> G["CA ↓"]
+  G --> H["Z ↑"]
+  H --> I["P ×"]
+  I --> J["CB ×"]
+  J --> K["CA ↓"]
+  K --> L["Z ↑"]
+  L --> M["P ×"]
+    end
+    subgraph EPWMxA
+  N["Z ↑"] --> O["P ×"]
+  O --> P["CB ↓"]
+  P --> Q["CA ×"]
+  Q --> R["Z ↑"]
+  R --> S["P ×"]
+  S --> T["CB ↓"]
+  T --> U["CA ×"]
+  U --> V["Z ↑"]
+  V --> W["P ×"]
+    end
+    subgraph EPWMxB
+  X["Z ↑"] --> Y["P ×"]
+  Y --> Z["CB ↓"]
+  Z --> AA["CA ×"]
+    end
+```
+</details>
+
+图9-22 增模式，单边非对称波形，独立调制，高电平有效
+
+## 配置函数：
+
+```c
+PWM_setActionQual_Zero_PwmA(myPwm1, PWM_ActionQual_Set); // Counter=0, PWM1A置高
+PWM_setActionQual_CntUp_CmpA_PwmA(myPwm1, PWM_ActionQual_Clear); //CAU, PWM1A置低
+PWM_setActionQual_Zero_PwmB(myPwm1, PWM_ActionQual_Set); // Counter=0, PWM1B置高
+PWM_setActionQual_CntUp_CmpB_PwmB(myPwm1, PWM_ActionQual_Clear); //CBU, PWM1B置低
+```
+
+## 非对称波形
+
+![](images/57e934ec7e0984884ba385a2626e956b4db9ad30b00ee0edcb6d45e8dd980aae.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["TBCTR"] --> B["EPWMxA"]
+  B --> C["CB"]
+  C --> D["P"]
+  D --> E["CA"]
+  E --> F["P"]
+  F --> G["CB"]
+  G --> H["P"]
+  H --> I["CA"]
+  I --> J["P"]
+  J --> K["CP"]
+  K --> L["CP"]
+  L --> M["CP"]
+  M --> N["CP"]
+  N --> O["CP"]
+  O --> P["CP"]
+  P --> Q["CP"]
+  Q --> R["CP"]
+  R --> S["CP"]
+  S --> T["CP"]
+  T --> U["CP"]
+  U --> V["CP"]
+  V --> W["CP"]
+  W --> X["CP"]
+  X --> Y["CP"]
+  Y --> Z["CP"]
+  Z --> AA["CP"]
+  AA --> AB["CP"]
+  AB --> AC["CP"]
+  AC --> AD["CP"]
+  AD --> AE["CP"]
+  AE --> AF["CP"]
+  AF --> AG["CP"]
+  AG --> AH["CP"]
+  AH --> AI["CP"]
+  AI --> AJ["CP"]
+  AJ --> AK["CP"]
+  AK --> AL["CP"]
+  AL --> AM["CP"]
+  AM --> AN["CP"]
+  AN --> AO["CP"]
+  AO --> AP["CP"]
+  AP --> AQ["CP"]
+  AQ --> AR["CP"]
+  AR --> AS["CP"]
+  AS --> AT["CP"]
+  AT --> AU["CP"]
+  AU --> AV["CP"]
+```
+</details>
+
+图9-23 增模式，单边非对称波形，独立调制，低电平有效
+
+## 配置函数：
+
+```c
+PWM_setActionQual_Period_PwmA(myPwm1, PWM_ActionQual_Clear); // Counter= period，置低
+PWM_setActionQual_CntUp_CmpA_PwmA(myPwm1, PWM_ActionQual_Set); //CAU，置高
+PWM_setActionQual_Period_PwmB(myPwm1, PWM_ActionQual_Clear); // Counter= period，置低
+PWM_setActionQual_CntUp_CmpB_PwmB(myPwm1, PWM_ActionQual_Set); //CBU，置高
+```
+
+死区子模块（DB）：死区，通常叫死区时间（dead time），用于避免功率开关控制信号翻转时发生误触发的情况。
+
+右图为三相逆变电路控制电机的电路拓扑。当PWM高电平时功率管导通，PWM低电平时功率管关断。显然，同一桥臂的上下功率管不应该同时导通，否则将直接短路。所以，同一桥臂上下功率管的导通状态必须互补，也就是PWM波形必须互补。但是，实际的硬件电路中开关管导通和关断的过程不是瞬时完成的，存在导通上升时间以及关断下降时间。
+
+![](images/2ccf1679fef891d4d43593c6c4f3a986eeb96d9682a72c856eac51f06fa21286.jpg)
+
+<details>
+<summary>text_image</summary>
+
+EPWM1A
+VAB
+EPWM2A
+EPWM3A
+VCD
+VEF
+EPWM1B
+EPWM2B
+EPWM3B
+3 phase motor
+</details>
+
+死区子模块（DB）：死区，通常叫死区时间（dead time），用于避免功率开关控制信号翻转时发生误触发的情况。
+
+![](images/845172ad85395a9c679367c2348e72ddc10d4674d757c4b1cc535b8719759110.jpg)
+
+<details>
+<summary>text_image</summary>
+
+理想波形
+功率管
+实际波形
+</details>
+
+如上图所示，在功率管导通和关断过程，同一桥臂的上下管有可能直通，引起很大的短路电流而损坏开关管。为了避免这种短路，针对同一桥臂，必须在一个功率管完全关断后，再驱动另一个功率管导通，也就是说，导通和关断错开一定的时间，这个时间称为死区。死区子模块就是起到这种延时导通的作用。
+
+## 1. 死区子模块的功能框图
+
+死区子模块的功能框图如下图所示，实现的功能有：死区发生器时钟选择、死区时间的设置、输入源选择（DBCTL[IN\_MODE]）、极性选择（DBCTL[POLSEL]）、输出模式（DBCTL[OUT-MODE])
+
+![](images/71c80fa850e1e611851b6b79d0d608cf8ea4504b93c759b31bc89dcfe0200e54.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["EPWMxA in"] --> B["0 S4"]
+  B --> C["1"]
+  D["EPWMxB in"] --> E["0 S5"]
+  E --> F["1"]
+  G["Rising edge delay In (10-bit counter)"] --> H["0 S2"]
+  I["Falling edge delay In (10-bit counter)"] --> J["0 S3"]
+  K["DBCTL[IN_MODE"]] --> L["DBCTL[HALFCYCLE"]]
+  M["DBCTL[POLSEL"]] --> N["DBCTL[OUT_MODE"]]
+  O["RED"] --> P["0 S1"]
+  Q["FED"] --> R["1 S0"]
+  S["EPWMxA"] --> T["0 S1"]
+  U["EPWMxB"] --> V["0"]
+    style A fill:#f9f,stroke:#333
+    style D fill:#f9f,stroke:#333
+    style G fill:#ccf,stroke:#333
+    style I fill:#ccf,stroke:#333
+    style K fill:#ccf,stroke:#333
+    style O fill:#ccf,stroke:#333
+    style B fill:#fff,stroke:#333
+    style E fill:#fff,stroke:#333
+    style F fill:#fff,stroke:#333
+    style H fill:#fff,stroke:#333
+    style J fill:#fff,stroke:#333
+    style N fill:#fff,stroke:#333
+    style L fill:#fff,stroke:#333
+    style R fill:#fff,stroke:#333
+    style P fill:#fff,stroke:#333
+    style Q fill:#fff,stroke:#333
+    style R fill:#fff,stroke:#333
+    style S fill:#fff,stroke:#333
+    style T fill:#fff,stroke:#333
+```
+</details>
+
+## 2.死区子模块的功能概述
+
+## （1）死区发生器时钟选择
+
+死区子模块中死区发生器产生波形上升沿延时RED和下降沿延时FED，它是通过10位计数器来实现的。计数器时钟DBCLK可以选择为：
+
+- $\mathrm { f _ { D B C L K } { = } f _ { T B C L K } }$ ，即与TBCLK同频，称为周期时钟  
+- $\mathrm { f _ { D B C L K } } { = } 2 { \times } \mathrm { f _ { T B C L K } }$ ，即为TBCLK的2倍频，称为半周期时钟
+
+## 2.死区子模块的功能概述
+
+## （2）死区时间的设置
+
+死区子模块中上升沿时间延迟RED由寄存器DBRED控制，下降沿时间延迟FED由寄存器DBFED控制，这2个寄存器是10位的寄存器，具体数值代表死区计数器时钟的周期数。死区时延时间计算公式为：
+
+$$
+\mathrm{FED} = \mathrm{DBFED} \times \mathrm{T} _ {\mathrm{TBCLK}}
+$$
+
+$$
+\mathrm{RED} = \mathrm{DBRED} \times \mathrm{T} _ {\mathrm{TBCLK}}
+$$
+
+其中T $\mathrm { \Delta } _ { \mathrm { T B C L K } } ^ { \mathrm { \Delta } }$ 是时基时钟TBCLK的周期。如果选择半周期时钟，计算公式为：
+
+$$
+\mathrm{FED} = \mathrm{DBFED} \times \mathrm{T} _ {\mathrm{TBCLK}} / 2
+$$
+
+$$
+\mathrm{RED} = \mathrm{DBRED} \times \mathrm{T} _ {\mathrm{TBCLK}} / 2
+$$
+
+## 2.死区子模块的功能概述
+
+## （3）输入源选择 （DBCTL[IN\_MODE]）
+
+通过对应开关控制，死区子模块的输入信号是动作限定子模块的输出信号，记为EPWMxA in和EPWMxB in。信号源可以设置为：
+
+EPWMxA in作为上降沿和下升沿延时的信号源，该模式是缺省模式。  
+EPWMxA in作为上降沿延时的信号源，EPWMxB作为下升沿延时的信号源。  
+EPWMxA in作为下升沿延时的信号源，EPWMxB作为上降沿延时的信号源。  
+EPWMxB in作为上降沿和下升沿延时的信号源。
+
+## 2.死区子模块的功能概述
+
+## （4） 极性选择 （DBCTL[POLSEL]）
+
+控制上升沿延时和（或）下降沿延时的信号输出时是否反转。
+
+## （5） 输出模式 （DBCTL[OUT-MODE])
+
+通过S0、S1控制。选择死区延时输出或不经过死区延时直接输出。
+
+通过配置开关S0、S1、S2、S3的状态，可以产生不同的死区配置方案。
+
+## 2. 死区子模块的功能概述
+
+## （5） 输出模式 （DBCTL[OUT-MODE])
+
+右表给出了当EPWMxA in作为上升沿和下降沿延时的信号源时的死区配置方案，列举的工作模式可以分为以下几类：
+
+模式1：忽略下降沿时延和上升沿时延。该模式完全忽略死区子模块的存在。  
+• 模式2-5：典型的死区极性设置。许多电源开关驱动信号有死区的需求，电力电子同一桥臂功率管的控制常用AHC或ALC模式。  
+• 模式6：忽略上升沿时延。  
+• 模式7：忽略下降沿时延。
+
+<table><tr><td></td><td></td><td colspan="2">DBCTL[POLSEL]</td><td colspan="2">DBCTL[OUT_MODE]</td></tr><tr><td>模式</td><td>模式说明</td><td>S3</td><td>S2</td><td>S1</td><td>S0</td></tr><tr><td>1</td><td>EPWMxA and EPWMxB 无延迟</td><td>X</td><td>X</td><td>0</td><td>0</td></tr><tr><td>2</td><td>高电平有效,输出互补(AHC)</td><td>1</td><td>0</td><td>1</td><td>1</td></tr><tr><td>3</td><td>低电平有效,输出互补(ALC)</td><td>0</td><td>1</td><td>1</td><td>1</td></tr><tr><td>4</td><td>高有效(AH)</td><td>0</td><td>0</td><td>1</td><td>1</td></tr><tr><td>5</td><td>低有效(AL)</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>6</td><td>EPWMxA 输出= EPWMxA 输入(无延迟)EPWMxB 输出 = EPWMxA 输入(下降沿延迟)</td><td>0 or 1</td><td>0 or 1</td><td>0</td><td>1</td></tr><tr><td>7</td><td>EPWMxB 输出= EPWMxB 输入(无延迟)EPWMxA 输出 = EPWMxA 输入(上降沿延迟)</td><td>0 or 1</td><td>0 or 1</td><td>1</td><td>0</td></tr></table>
+
+## 3.死区子模块的软件架构
+
+## 寄存器及驱动函数
+
+下表为DB子模块的相关寄存器及其对应的驱动函数名。
+
+<table><tr><td>寄存器</td><td>描述</td><td>偏移地址</td><td>驱动函数</td><td>功能</td></tr><tr><td>DBCTL</td><td>死区控制寄存器</td><td>0x000F</td><td>PWM_enableDeadBandHalfCyclePWM_disableDeadBandHalfCyclePWM_setDeadBandInputModePWM_setDeadBandPolarityPWM_setDeadBandOutputMode</td><td>使能死区计数器二倍频禁止死区计数器二倍频设置死区输入模式设置死区极性设置死区输出模式</td></tr><tr><td>DBRED</td><td>死区上升沿延时计数器</td><td>0x0010</td><td>PWM_setDeadBandRisingEdgeDelay</td><td>死区上升沿延时时间</td></tr><tr><td>DBFED</td><td>死区下降沿延时计数器</td><td>0x0011</td><td>PWM_setDeadBandFallingEdgeDelay</td><td>死区下降沿延时时间</td></tr></table>
+
+## 3.死区子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-26\~表9-30给出了DB子模块驱动函数的描述和示例。
+
+表9-26 函数PWM\_ disableDeadBandHalfCycle
+
+<table><tr><td>函数名</td><td>PWM_disableDeadBandHalfCycle</td></tr><tr><td>函数原型</td><td>PWM_disableDeadBandHalfCycle(PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>禁止死区时钟为TB时钟频率的2倍频</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>无</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//PWM1的死区时钟频率等于TB时钟频率
+
+PWM\_disableDeadBandHalfCycle(myPwm1);
+
+## 3.死区子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-27 函数PWM\_setDeadBandInputMode
+
+<table><tr><td>函数名</td><td>PWM_setDeadBandInputMode</td></tr><tr><td>函数原型</td><td>PWM_setDeadBandInputMode(PWM_Handle pwmHandle, const PWM_DeadBandInputMode_e inputMode)</td></tr><tr><td>功能描述</td><td>死区子模块输入源选择</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>输入源信号选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+## 示例：
+
+//EPWM1A作为死区上升沿和下降沿延时的信号源
+
+PWM\_setDeadBandInputMode(myPwm1,PWM\_DeadBandInputMode\_EPWMxA\_Rising\_and\_Falling);
+
+## 3.死区子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-28 函数PWM\_setDeadBandPolarity
+
+<table><tr><td>函数名</td><td>PWM_setDeadBandPolarity</td></tr><tr><td>函数原型</td><td>PWM_setDeadBandPolarity(PWM_Handle pwmHandle, const PWM_DeadBandPolarity_e polarity)</td></tr><tr><td>功能描述</td><td>死区极性配置</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>死区极性选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//EPWM1B的输出极性取反
+
+PWM\_setDeadBandPolarity(myPwm1,PWM\_DeadBandPolarity\_EPWMxB\_Inverted);
+
+## 3.死区子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-29 函数PWM\_setDeadBandOutputMode
+
+<table><tr><td>函数名</td><td>PWM_setDeadBandOutputMode</td></tr><tr><td>函数原型</td><td>PWM_setDeadBandOutputMode(PWM_Handle pwmHandle, const PWM_DeadBandOutputMode_e outputMode)</td></tr><tr><td>功能描述</td><td>死区输出模式选择</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>死区输出模式选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//EPWM1A通过上升沿延时输出，EPWM1B通过下降沿延时输出
+
+PWM\_setDeadBandOutputMode(myPwm1,PWM\_DeadBandOutputMode\_EPWMxA\_Rising \_EPWMxB\_Falling);
+
+## 3.死区子模块的软件架构
+
+## （2） 驱动函数描述
+
+表9-30 函数PWM\_setDeadBandFallingEdgeDelay
+
+<table><tr><td>函数名</td><td>PWM_setDeadBandFallingEdgeDelay</td></tr><tr><td>函数原型</td><td>PWM_setDeadBandFallingEdgeDelay(PWM_Handle pwmHandle, const uint16_t delay)</td></tr><tr><td>功能描述</td><td>死区延时大小</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>死区延时时间</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//如图TB的时钟频率为60MHz，EPWM1的下降沿延时为60/60MHz=1μS PWM\_setDeadBandFallingEdgeDelay(myPwm1,60);
+
+斩波子模块通过高频载波信号来调制经由AQ模块和DB模块输出的PWM波形，这项功能在控制高开关频率的功率器件时非常有用。
+
+## 1. PC子模块的功能
+
+PC子模块功能框图如右图所示， 其主要功能：设置斩波 （载波） 频率、 设置第一个脉冲的宽度、 设置第二个以及后续脉冲的占空比
+
+![](images/6eb2e4632fd8cfd6f69483eafb7f8986db25bb2ed0a4091aee89e9d044971e05.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["EPWMxA"] --> B["Start"]
+  C["SYSCLKOUT"] --> D["/8"] --> E["Pulse-width"]
+  E --> F["One shot"]
+  F --> G["Clock Pulse width"]
+  G --> H["OSHT"]
+  H --> I["AND Gate"]
+  I --> J["PWMA_ch"]
+  J --> K["0"]
+  K --> L["EPWMxA"]
+  M["EPWMxB"] --> N["Start"]
+  O["EPWMxB"] --> P["Start"]
+  Q["EPWMxB"] --> R["Start"]
+  S["EPWMxB"] --> T["Start"]
+  U["EPWMxB"] --> V["Start"]
+  W["EPWMxB"] --> X["Start"]
+  Y["EPWMxB"] --> Z["Start"]
+  AA["EPWMxB"] --> AB["Start"]
+  AC["EPWMxB"] --> AD["Start"]
+  AE["EPWMxB"] --> AF["Start"]
+  AG["EPWMxB"] --> AH["Start"]
+  AI["EPWMxB"] --> AJ["Start"]
+  AK["EPWMxB"] --> AL["Start"]
+  AM["EPWMxB"] --> AN["Start"]
+  AO["EPWMxB"] --> AP["Start"]
+  AQ["EPWMxB"] --> AR["Start"]
+  AS["EPWMxB"] --> AT["Start"]
+  AU["EPWMxB"] --> AV["Start"]
+  AW["EPWMxB"] --> AX["Start"]
+  AY["EPWMxA"] --> AZ["Start"]
+  BA["Bypass"] --> BB["0"]
+  BB --> BC["1"]
+  BC --> BD["EPWMxA"]
+  BE["Bypass"] --> BF["0"]
+  BF --> BG["1"]
+  BG --> BH["EPWMxA"]
+  BI["Pulse width"] --> BJ["Pulse-width"]
+  BJ --> BK["Pulse width"]
+  BK --> BL["Pulse width"]
+  BL --> BM["Pulse width"]
+  BM --> BN["Pulse width"]
+  BN --> BO["Pulse width"]
+  BP["Pulse width"] --> BQ["Pulse width"]
+  BR["Pulse width"] --> BS["Pulse width"]
+  BT["Pulse width"] --> BU["Pulse width"]
+  BV["Pulse width"] --> BW["Pulse width"]
+  BX["Pulse width"] --> BY["Pulse width"]
+  BZ["Pulse width"] --> CA["Pulse width"]
+  CB["Pulse width"] --> CC["Pulse width"]
+  DD["Pulse width"] --> DE["Pulse width"]
+  DF["Pulse width"] --> DG["Pulse width"]
+  DH["Pulse width"] --> DI["Pulse width"]
+  DJ["Pulse width"] --> DK["Pulse width"]
+  DL["Pulse width"] --> DV["Pulse width"]
+  DW["Pulse width"] --> DX["Pulse width"]
+  DXP["Pulse width"] --> DY["Pulse width"]
+  DYP["Pulse width"] --> DYD["Pulse width"]
+  DYP["Pulse width"] --> DYR["Pulse width"]
+  DYR["Pulse width"] --> DYU["Pulse width"]
+  DYU["Pulse width"] --> DYV["Pulse width"]
+  DYV["Pulse width"] --> DYX["Pulse width"]
+  DYX["Pulse width"] --> DYXD["Pulse width"]
+  DYX["Pulse width"] --> DYXU["Pulse width"]
+  DYX["Pulse width"] --> DYXV["Pulse width"]
+  DYX["Pulse width"] --> DYXU
+  DYX["Pulse width"] --> DYXV
+  DYX["Pulse width"] --> DYXU
+```
+</details>
+
+## 2. PC子模块的功能
+
+## 高频载波调制原理
+
+下图为PWM波形经过PC子模块高频载波调制输出的原理。可以看出，经过PC子模块调制后输出的波形其实是将PWM波形同高频载波信号做逻辑与运算。原来低电平部分还是低电平，原来高电平部分变为高频载波。
+
+![](images/1429b90f78be37c2d45257b4d332995a8f9f456270671ab04557dbd7fccf9f1d.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal     | Time Segment 1 | Time Segment 2 | Time Segment 3 |
+|------------|----------------|----------------|----------------|
+| EPWMxA     | High           | Low            | High           |
+| EPWMxB     | Low            | High           | Low            |
+| PSCLK      | High           | Low            | High           |
+| EPWMxA     | Low            | High           | Low            |
+| EPWMxB     | Low            | Low            | High           |
+</details>
+
+《 微 控 制 器 原 理 及 应 用 -- 基 于 TI C2000 实 时 微 控 制 器 》
+
+## 2. PC子模块的功能
+
+## （2）载波时钟PSCLK频率设置（PCCTL（CHPFREQ))
+
+PC子模块的时钟信号为系统时钟的8分频，斩波时钟PSCLK的频率，可选择对子模块时钟再进行1～8分频，即载波信号的频率为SYSCLKOUT/（8×n），n=1,2,...8。
+
+## 2. PC子模块的功能
+
+## （3）载波时钟PSCLK占空比设置(PCCTL（CHPDUTY)）
+
+PC子模块可以设置斩波时钟PSCLK的占空比。右图给出了占空比从12.5%～87.5%之间变化的7种可供选择的载波信号。
+
+![](images/6c84b849e0c5c2e871365fe375cb07c8b1f4d076b3fa311239b71f43a769ea30.jpg)
+
+<details>
+<summary>timing diagram</summary>
+
+|        | duty_1/8 | duty_2/8 | duty_3/8 | duty_4/8 | duty_5/8 | duty_6/8 | duty_7/8 |
+| ------ | -------- | -------- | -------- | -------- | -------- | -------- | -------- |
+| PSCLK Period | 87.5%    | 62.5%    | 37.5%    | 12.5%    |          |          |          |
+</details>
+
+## 2. PC子模块的功能
+
+## （4）第一个脉冲的配置（PCCTL（OSHTWDH）
+
+在实际应用中，多数功率器件的开通电流要比维持电流大得多，对第一个脉冲的宽度有具体要求，用来给设备提供充足的激励能量，而后续的脉冲信号仅仅为了维持功率器件的持续导通与关断。PC子模块提供了对第一个脉冲宽度的设置。
+
+第一个脉冲的宽度可设置为任何16种可能的脉冲宽度值。第一个脉冲宽度或周期为：
+
+$$
+\mathrm{T} _ {\text {1st.pulse}} = (\mathrm{OSHTWTH} + 1) \times \mathrm{T} _ {\text {SYSCLKOUT}} \times 8
+$$
+
+其中TSYSCLKOUT是系统时钟SYSCLKOUT周期，OSHTWTH取值为0到15。
+
+## 2. PC子模块的功能
+
+## （4）第一个脉冲的配置（PCCTL（OSHTWDH）
+
+在实际应用中，多数功率器件的开通电流要比维持电流大得多，对第一个脉冲的宽度有具体要求，用来给设备提供充足的激励能量，而后续的脉冲信号仅仅为了维持功率器件的持续导通与关断。PC子模块提供了对第一个脉冲宽度的设置。
+
+第一个脉冲的宽度可设置为任何16种可能的脉冲宽度值。第一个脉冲宽度或周期为：
+
+$$
+\mathrm{T} _ {\text {1st.pulse}} = (\mathrm{OSHTWTH+1}) \times \mathrm{T} _ {\text {SYSCLKOUT}} \times 8
+$$
+
+其中TSYSCLKOUT是系统时钟SYSCLKOUT周期，OSHTWTH取值为0到15。
+
+## 2. PC子模块的功能
+
+## （4）第一个脉冲的配置（PCCTL（OSHTWDH）
+
+第一个脉冲和后续脉冲波形如下图所示。
+
+![](images/273373c7b7e92d487ce45b10d1cb01eea4587abf51438a24d8c69b98b9dc0ceb.jpg)
+
+<details>
+<summary>text_image</summary>
+
+Start OSHT pulse
+EPWMxA in
+PSCLK
+Prog. pulse width (OSHTWTH)
+OSHT
+EPWMxA out
+Sustaining pulses
+</details>
+
+## （5）使能/放弃PC子模块作用(PCCTL（CHPEN)）
+
+通过CHPEN信号可以使能或者放弃PC子模块的作用。
+
+## 3.PC子模块的软件架构
+
+## （1） 寄存器及驱动函数
+
+下表为PC子模块的相关寄存器及其对应的驱动函数名。
+
+<table><tr><td>寄存器</td><td>描述</td><td>偏移地址</td><td>驱动函数</td><td>功能</td></tr><tr><td>PCCTL</td><td>斩波控制寄存器</td><td>0x001E</td><td>PWM_disableChoppingPWM_enableChoppingPWM_setChoppingClkFreqPWM_setChoppingDutyCyclePWM_setChoppingPulseWidth</td><td>禁止斩波模块使能斩波模块设置斩波时钟频率设置斩波占空比设置斩波初始占空比</td></tr></table>
+
+## 3.PC子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-32\~表9-36给出了PC子模块驱动函数的描述和示例。
+
+表9-32 函数PWM\_enableChopping
+
+<table><tr><td>函数名</td><td>PWM_enableChopping</td></tr><tr><td>函数原型</td><td>PWM_enableChopping(PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>使能斩波子模块</td></tr><tr><td>输入参数</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//使能ePWM1的斩波子模块
+
+PWM\_enableChopping (myPwm1);
+
+## 3.PC子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-33 函数PWM\_setChoppingClkFreq
+
+<table><tr><td>函数名</td><td>PWM_setChoppingClkFreq</td></tr><tr><td>函数原型</td><td>PWM_setChoppingClkFreq(PWM_Handle pwmHandle, const PWM_ChoppingClkFreq_e clkFreq)</td></tr><tr><td>功能描述</td><td>设置斩波频率</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>斩波频率选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置斩波频率=系统时钟频率/(8\*2)
+
+PWM\_setChoppingClkFreq(myPwm1,PWM\_ChoppingClkFreq\_SysClkOut\_by\_2);
+
+## 3.PC子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-34 函数PWM\_setChoppingDutyCycle
+
+<table><tr><td>函数名</td><td>PWM_setChoppingDutyCycle</td></tr><tr><td>函数原型</td><td>PWM_setChoppingDutyCycle(PWM_Handle pwmHandle, const PWM_ChoppingDutyCycle_e dutyCycle)</td></tr><tr><td>功能描述</td><td>设置斩波占空比</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>斩波占空比选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置斩波占空比=2/8=25%
+
+PWM\_setChoppingDutyCycle(myPwm1,PWM\_ChoppingDutyCycle\_Two\_Eighths);
+
+## 3.PC子模块的软件架构
+
+## （2）驱动函数描述
+
+表9-35 函数PWM\_setChoppingPulseWidth
+
+<table><tr><td>函数名</td><td>PWM_setChoppingPulseWidth</td></tr><tr><td>函数原型</td><td>PWM_setChoppingPulseWidth(PWM_Handle pwmHandle, const PWM_ChoppingPulseWidth_e pulseWidth)</td></tr><tr><td>功能描述</td><td>设置斩波第一个脉冲的宽度</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>斩波第一个占空比大小选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置斩波第一个脉冲宽度=2×TSYSCLKOUT ×8
+
+PWM\_setChoppingPulseWidth(myPwm1,PWM\_ChoppingPulseWidth\_Two\_Eighths \_SysClkOut);
+
+## 故障联防子模块 （TZ）
+
+当检测到某种故障时，故障联防子模块可以强制PWM的输出。例如，某种功率变换电路的过流或过压保护，当出现过流或过压等故障时，希望强制PWM输出信号关断功率开关管，避免故障严重化，保护设备安全。
+
+每个ePWM连接6路的触发信号TZn (TZ1 到 TZ6)。其中TZ1～TZ3和GPIO引脚复用，TZ4为含有EQEP1模块的DSP所产生的EQEP1ERR信号，TZ5反映系统时钟失效逻辑，TZ6是CPU输出的EMUSTOP信号。这些信号指明外部故障或者其他触发条件，ePWM模块可以利用这些触发信号来影响PWM波形的输出。
+
+## 1. TZ子模块的功能
+
+## TZ子模块基本功能有：
+
+• 触发输入信号TZ1 到TZ6可以很方便配置到任一ePWM模块  
+• 在故障条件下，配置强制EPWMxA和EPWMxB输出的动作：高电平、低电平、高阻态、保持不变。
+
+• 支持单次触发方式（OSHT），适用于短路或者过流等严重故障保护
+
+• 支持周期循环触发方式（CBC），适用于限流操作
+
+• 任一触发区输入信号可作为中断源，产生中断
+
+• 支持软件强制触发
+
+• 放弃TZ子模块功能
+
+1.TZ子模块的功能  
+![](images/4f4cec71a4eb0e0282e4b13a83132bc06645d3489107aab55536b2ff09f854be.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["EPWMxA"] --> B["TZSEL[CBC1 to CBC6"]]
+  C["EPWMxB"] --> B
+  D["CTR=zero"] --> E["TZFRC[CBC"]]
+  E --> F["TZ1"]
+  E --> G["TZ2"]
+  E --> H["TZ3"]
+  E --> I["TZ4"]
+  E --> J["TZ5"]
+  E --> K["TZ6"]
+  L["TZCTL[TZA, TZB"]] --> M["Trip Logic"]
+  N["EPWMxA"] --> M
+  O["EPWMxB"] --> M
+  P["CBC trip event"] --> M
+  Q["TZCLR[CBC"]] --> R["Sync"]
+  S["TZFLG[CBC"]] --> T["Set"]
+  U["Clear"] --> V["Clear Latch cyc-by-cyc mode (CBC)"]
+  V --> W["Set"]
+  X["TZCLR[OST"]] --> Y["Clear Latch one-shot mode (OSHT)"]
+  Y --> Z["Set"]
+  AA["TZFRC[OSHT"]] --> AB["Sync"]
+  AC["OSHT trip event"] --> AD["Trip"]
+  AE["TZSEL[OSHT1 to OSHT6"]] --> AF["Sync"]
+  AG["Async Trip"] --> AH["Set TZFLG[OST"] Clear]
+```
+</details>
+
+TZ子模块的功能框图
+
+## 2.TZ子模块的功能概述
+
+触发区信号TZ1～TZ6 (简写为TZn)是低电平有效的输入信号。每个ePWM模块可以独立配置放弃或者使用这些触发信号，可以选择使用6种触发信号中的一种提供给ePWM模块产生连续或单次触发事件。TZ子模块对触发信号进行数字滤波，只有TZn输入信号具有最小3倍TBCLK的低电平宽度时才被认定为一个有效的触发信号，小于这个宽度的TZn信号被舍弃。切记使用TZn信号时要配置好GPIO复用功能。
+
+## 2.TZ子模块的功能概述
+
+## （1） 周期循环(CBC)触发事件
+
+周期循环触发是以计数器TBCTR的计数周期为单位的，在每一个周期内，如果捕获到触发信号，则EPWMxA和（或）EPWMxB的输出立即由TZCTL寄存器中所设定的状态决定，但是当PWM模块的计数器TBCTR计数到0时并且故障信号已经不存在时，EPWMxA和（或）EPWMxB的强制状态就会被清除。因此，在该模式下触发事件在每个ePWM周期内会被清除。
+
+另外，周期性触发事件标志位TZFLG[CBC]置位，如果中断使能，将产生EPWMx\_TZINT中断。TZFLG[CBC]标志位将一直存在，直到通过写TZCLR[CBC]位将其清零。如果TZ触发事件仍然存在，那么即使清除了TZFLG[CBC]，也会立即再次被置位。
+
+## 2.TZ子模块的功能概述
+
+## （2） 单次(OST)触发事件
+
+单次触发是指当触发事件发生时，指定的动作立即出现在ePWM输出EPWMxA和（或）EPWMxB上，这种输出状态会一直保持下去，除非人为清除故障信号并复位ePWM。
+
+另外，单次触发事件标志位TZFLG[OST]置位，如果中断使能，将产生EPWMx\_TZINT中断。TZFLG[OST]必须通过写TZCLR[OST]位来清零。
+
+## （3） TZ中断
+
+CBC、OST都可以作为中断触发事件。这些事件发生时，相应的标志位会置位，要使用EPWMxTZINT，需要相应中断允许和PIE的正确设置。
+
+## 2.软件架构
+
+## （1） 寄存器及驱动函数
+
+下表为TZ子模块的相关寄存器及其对应的驱动函数名。
+
+<table><tr><td>寄存器</td><td>描述</td><td>偏移地址</td><td>驱动函数</td><td>功能</td></tr><tr><td>TZSEL</td><td>TZ选择寄存器</td><td>0x0012</td><td>PWM_disableTripZoneSrcPWM_enableTripZoneSrcPWM_disableTripZones</td><td>禁止TZ触发源使能TZ触发源禁止TZ功能</td></tr><tr><td>TZCTL</td><td>TZ控制寄存器</td><td>0x0014</td><td>PWM_setTripZoneState_TZAPWM_setTripZoneState_TZB</td><td>TZ触发PWMA状态设置TZ触发PWMB状态设置</td></tr><tr><td>TZEINT</td><td>TZ中断使能寄存器</td><td>0x0015</td><td>PWM_disableTripZoneIntPWM_enableTripZoneInt</td><td>禁止TZ中断允许TZ中断</td></tr><tr><td>TZFLG</td><td>TZ标志寄存器</td><td>0x0016</td><td></td><td></td></tr><tr><td>TZCLR</td><td>TZ标志清零寄存器</td><td>0x0017</td><td>PWM_clearTripZone</td><td>TZ标志清零</td></tr></table>
+
+## 2.软件架构
+
+## （2）驱动函数描述
+
+表9-37\~表9-40给出了TZ子模块驱动函数的描述和示例。
+
+表9-37 函数PWM\_enableTripZoneSrc
+
+<table><tr><td>函数名</td><td>PWM_enableTripZoneSrc</td></tr><tr><td>函数原型</td><td>PWM_enableTripZoneSrc(PWM_Handle pwmHandle, const PWM_TripZoneSrc_e src)</td></tr><tr><td>功能描述</td><td>TZ触发源选择</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>TZ触发方式</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//配置TZ1作为ePWM1的故障联防单次触发源，OSHT1
+
+PWM\_enableTripZoneSrc(myPwm1,PWM\_TripZoneSrc\_OneShot\_TZ1\_NOT);
+
+//配置TZ2作为ePWM1的故障联防连续触发源，CBC2
+
+PWM\_enableTripZoneSrc(myPwm1, PWM\_TripZoneSrc\_CycleByCycle\_TZ2\_NOT);
+
+## 2.软件架构
+
+## （2）驱动函数描述
+
+表9-38 函数PWM\_disableTripZones
+
+<table><tr><td>函数名</td><td>PWM_disableTripZones</td></tr><tr><td>函数原型</td><td>PWM_disableTripZones(PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>禁止TZ所有功能</td></tr><tr><td>输入参数</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//禁止ePWM1的全部TZ功能
+
+PWM\_disableTripZones（myPwm1）
+
+## 2.软件架构
+
+## （2）驱动函数描述
+
+表9-39 函数PWM\_setTripZoneState\_TZA
+
+<table><tr><td>函数名</td><td>PWM_setTripZoneState_TZA</td></tr><tr><td>函数原型</td><td>PWM_setTripZoneState_TZA(PWM_Handle pwmHandle, const PWM_TripZoneState_e tripZoneState)</td></tr><tr><td>功能描述</td><td>配置PWMxA在TZ触发时的输出电平</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>触发状态选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//TZ触发时PWM1A输出高电平
+
+PWM\_setTripZoneState\_TZA(myPwm1，PWM\_TripZoneState\_EPWM\_High);
+
+## 2.软件架构
+
+## （2）驱动函数描述
+
+表9-40 函数PWM\_clearTripZone
+
+<table><tr><td>函数名</td><td>PWM_clearTripZone</td></tr><tr><td>函数原型</td><td>PWM_clearTripZone(PWM_Handle pwmHandle, const PWM_TripZoneFlag_e tripZoneFlag)</td></tr><tr><td>功能描述</td><td>清除TZ标志位</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>标志位选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//TZ全局中断标志位清0
+
+PWM\_clearTripZone(myPwm1，PWM\_TripZoneFlag\_Global);
+
+## 1.ET子模块的功能
+
+## ET子模块主要功能有：
+
+•管理由时基子模块、比较子模块所产生的事件，这些事件可用于产生PIE中断EPWMxINT和ADC转换启动信号：EPWMxSOCA和EPWMxSOCB
+
+• 允许软件强制触发中断和启动ADC转换  
+• 通过事件分频机制，灵活设置输出触发事件的频度
+
+## 1.ET子模块的功能
+
+![](images/31d617cbd0b18d5d11a90be6169282790297cd8c33e946c4e9e8c3e348dc16a5.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  A["CTR=Zero"] --> B["Direction qualifier"]
+  C["CTR=PRD"] --> B
+  D["CTR=Zero or PRD"] --> B
+  E["CTR=CMPA"] --> B
+  F["CTR=CMPB"] --> B
+  G["CTR_dir"] --> B
+  B --> H["EventTrigger Module Logic"]
+  H --> I["/n"]
+  I --> J["PIE"]
+  H --> K["/n"]
+  K --> L["ADC"]
+  H --> M["ETSEL reg"]
+  H --> N["ETPS reg"]
+  H --> O["ETFLG reg"]
+  H --> P["ETCLR reg"]
+  H --> Q["ETFRC reg"]
+  H --> R["/n"]
+  R --> S["EPWMxINTn"]
+  R --> T["EPWMxSOCA"]
+  R --> U["/n"]
+  U --> V["ADC"]
+  R --> W["/n"]
+  W --> X["PIE"]
+  R --> Y["/n"]
+  Y --> Z["ADC"]
+    style A fill:#f9f,stroke:#333
+    style C fill:#f9f,stroke:#333
+    style D fill:#f9f,stroke:#333
+    style E fill:#f9f,stroke:#333
+    style F fill:#f9f,stroke:#333
+    style G fill:#f9f,stroke:#333
+    style H fill:#ccf,stroke:#333
+    style I fill:#cff,stroke:#333
+    style J fill:#ffc,stroke:#333
+    style K fill:#ffc,stroke:#333
+    style L fill:#ffc,stroke:#333
+    style M fill:#ffc,stroke:#333
+    style N fill:#ffc,stroke:#333
+    style O fill:#ffc,stroke:#333
+    style P fill:#ffc,stroke:#333
+    style Q fill:#ffc,stroke:#333
+    style R fill:#ffc,stroke:#333
+    style S fill:#ffc,stroke:#333
+```
+</details>
+
+ET子模块功能框图
+
+## 2.ET子模块的功能概述
+
+## （1）可用于ET子模块的输入事件信号有：
+
+• CTR=Zero：计数器寄存器的值为0，TBCTR =0  
+• CTR=PRD：计数器寄存器的值为PRD，TBCTR =PRD  
+• CTR=Zero 或 CTR=PRD：TBCTR = 0或TBCTR = period  
+• CTRU=CMPA：在计数器增计数时，TBCTR=CMPA，CTR\_dir=1  
+• CTRD=CMPA：在计数器减计数时，TBCTR=CMPA，CTR\_dir=0  
+• CTRU=CMPB：在计数器增计数时，TBCTR=CMPB，CTR\_dir=1  
+• CTRD=CMPB：在计数器减计数时，TBCTR=CMPB，CTR\_dir=0  
+• 软件产生的强制事件信号
+
+## 2.ET子模块的功能概述
+
+## ET子模块的输出事件
+
+下图给出了ET子模块的输出事件与PIE模块和ADC模块的连接关系。每个ePWM的ET子模块拥有的输出事件信号有：
+
+• 1路PIE中断，EPWMxINT  
+• 2路ADC启动信号，EPWMxSOCA和EPWMxSOCB
+
+![](images/3d163e95b0c249d0334378c7562c7c9e032b4eb4cb62bc78b7d8e80dd69e0c32.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  ADC --> EPWM1SOCA["EPWM1SOCB"]
+  ADC --> EPWM2SOCA["EPWM2SOCB"]
+  ADC --> EPWMxSOCA["EPWMxSOCB"]
+  EPWM1_module["EPWM1 module"] -->|EPWM1INT| PIE["PIE"]
+  EPWM2_module["EPWM2 module"] -->|EPWM2INT| PIE
+  EPWMx_module["EPWMx module"] -->|EPWMxINT| PIE
+  EPWM1Module["EPWM1 module"] -->|EPWM1INT| PIE
+  EPWM2Module["EPWM2 module"] -->|EPWM2INT| PIE
+  EPWMxModule["EPWMx module"] -->|EPWMxINT| PIE
+```
+</details>
+
+## 2.ET子模块的功能概述
+
+## （3）事件触发器中断EPWMxINT产生逻辑
+
+下图描述了事件触发器中断EPWMxINT内部逻辑。说明见后页：
+
+![](images/200e49511f61f924e71fc04d9f0783c2c768beae85a0c012dc0845056dd96f92.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["ETFLG[INT"]] --> B["Clear Latch Set"]
+  B --> C["1"]
+  C --> D["Generate Interrupt Pulse When Input=1"]
+  D --> E["0"]
+  E --> F["ETSEL[INT"]]
+  F --> G["Clear!CNT 2-bit Counter Inc!CNT"]
+  G --> H["ETPS[INTPRD"]]
+  H --> I["000"]
+  H --> J["001"]
+  H --> K["010"]
+  H --> L["011"]
+  H --> M["100"]
+  H --> N["101"]
+  H --> O["101"]
+  H --> P["111"]
+  Q["ETCLR[INT"]] --> B
+  R["EPWMxINT"] --> D
+  S["ETFRC[INT"]] --> T["000"]
+  S --> U["001"]
+  S --> V["010"]
+  S --> W["011"]
+  S --> X["100"]
+  S --> Y["101"]
+  S --> Z["101"]
+  S --> AA["111"]
+  AB["CTR=Zero"] --> AC["0"]
+  AD["CTR=PRD"] --> AE["0"]
+  AF["CTRU=CMPA"] --> AG["0"]
+  AH["CTRD=CMPA"] --> AI["0"]
+  AJ["CTRU=CMPB"] --> AK["0"]
+  AL["CTRD=CMPB"] --> AM["0"]
+  AN["ETPS[INTCNT"]] --> G
+  AO["ETFLG[INT"]] --> B
+```
+</details>
+
+## 2.ET子模块的功能概述
+
+## （3）事件触发器中断EPWMxINT产生逻辑
+
+1）ETSEL[INTSEL]选择用于触发的事件输入。ETFRC[INT]为软件强制触发。  
+2）ET子模块内部具有事件计数器（2-bit Counter），每次有效事件输入，事件计数器ETPS[INTCNT]加1，可以通过程序随时访问事件计数器。通过设置事件计数器的周期ETPS[INTPRD]，就可以实现事件分频了，可供选择的事件分频有：
+
+a) 每1个事件发生时触发一次中断，即事件分频系数=1  
+b) 每2个事件发生时触发一次中断，即事件分频系数=2  
+c) 每3个事件发生时触发一次中断，即事件分频系数=3  
+d) 不产生中断
+
+## 2.ET子模块的功能概述
+
+## （3）事件触发器中断EPWMxINT产生逻辑
+
+3）当事件计数器ETPS[INTCNT]值等于ETPS[INTPRD]时，停止计数且输出置位。有3种不同情况：
+
+如 果 中 断 允 许 并 且 中 断 标 志 位 为 0 ， 即 E T S E L [ I N T E N ] = 1 ,ETFLG[INT]=0,则产生中断脉冲信号且中断标志位置位ETFLG[INT]=1，产生中断请求，事件计数器ETPS[INTCNT]被复位，重新开始对事件计数。
+
+如果中断被禁止ETSEL[INTEN]=0，或者中标标志位已经被置位ETFLG[INT]=1，则不会产生中断事件，事件计数器ETPS[INTCNT]停止计数，保持当前值不变。
+
+如果中断被使能ETSEL[INTEN]=1，且中断标志位已经被置位ETFLG[INT]=1，也就是说，前面已经产生了中断而且中断还没有被响应，则这个状态会保持，然后等CPU响应中断，等到中断标志位ETFLG[INT]被清零，计数器重新开始计数。这允许一个中断在响应时，另一个中断触发事件挂起等待。
+
+## 2.ET子模块的功能概述
+
+## （3）事件触发器中断EPWMxINT产生逻辑
+
+4）写计数器周期值E T P S [I N T PR D ]时，计数器值自动清零ETPS[INTCNT]=0，计数器输出复位，不产生中断触发事件。  
+5）写1到软件强制事件位ETFRC[INT]，计数器值增加1。  
+6）当ETPS[INTPRD]=0时，计数器被禁止，不会对事件进行计数，不会产生中断触发信号。
+
+## 2.ET子模块的功能概述
+
+## （4）触发信号EPWMxSOCA和EPWMxSOCB原理
+
+下图描述了事件触发信号EPWMxSOCA的内部逻辑，SOCA用于ADC启动信号。EPWMxSOCB的逻辑与此类似。
+
+![](images/231072597bc36379a948f645f1b02b473768e6f147d5d975ce4588b4cdfaef30.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SOCA"] --> B["Generate SOC Pulse When Input=1"]
+  B --> C["ETSEL[SOCA"]]
+  C --> D["Clear!CNT"]
+  D --> E["2-bit Counter"]
+  E --> F["ETPS[SOCAPRD"]]
+  F --> G["ETFRC[SOCA"]]
+  G --> H["ETSEL[SOCASEL"]]
+  H --> I["DCAEVT1.soc"]
+  I --> J["CTR=Zero"]
+  I --> K["CTR=PRD"]
+  J --> L["CTRU=CMPA"]
+  K --> M["CTRD=CMPA"]
+  L --> N["CTRU=CMPB"]
+  M --> O["CTRD=CMPB"]
+  N --> P["AND"]
+  O --> P
+  P --> Q["ETFRC[SOCASOL"]]
+  Q --> R["ETPS[SOCACNT"]]
+  R --> S["ETFLG[SOCAS"]]
+  S --> T["ETCLR[SOCAS"]]
+  T --> U["Clear Latch Set"]
+  U --> V["ETCLR[SOCAS"]]
+```
+</details>
+
+事件触发信号EPWMxSOCA的计数器和周期寄存器与中断产生逻辑中的计数器和周期寄存器功能相同。不同的是，SOCA的触发信号不受脉冲标志位ETFLG[SOCA]的影响，只要计数器值等于周期值，而且ETSEL[SOCAEN]被允许，就会输出SOCA触发脉冲。
+
+## 3.软件架构
+
+## （1） 寄存器及驱动函数
+
+右表为ET子模块的相关寄存器及其对应的驱动函数名。
+
+<table><tr><td>寄存器</td><td>描述</td><td>偏移地址</td><td>驱动函数</td><td>功能</td></tr><tr><td>ETSEL</td><td>事件触发选择寄存器</td><td>0x0019</td><td>PWM_setIntModePWM_setSocAPulseSrcPWM_setSocBPulseSrcPWM_enableIntPWM_disableSocAPulsePWM_enableSocAPulsePWM_disableSocBPulsePWM_enableSocBPulse</td><td>配置PWM中断模式配置SOCA触发源配置SOCB触发源允许PWM中断禁止PWM触发SOCA允许PWM触发SOCA禁止PWM触发SOCB允许PWM触发SOCB</td></tr><tr><td>ETPS</td><td>事件触发预分频寄存器</td><td>0x001A</td><td>PWM_setIntPeriodPWM_setSocAPeriodPWM_setSocBPeriod</td><td>配置PWM中断周期配置SOCA触发周期配置SOCB触发周期</td></tr><tr><td>ETFLG</td><td>事件触发标志寄存器</td><td>0x001B</td><td></td><td></td></tr><tr><td>ETCLR</td><td>事件触发清除寄存器</td><td>0x001C</td><td>PWM_clearIntFlagPWM_clearSocAFlagPWM_clearSocBFlag</td><td>清除PWM中断标志清除SOCA中断标志清除SOCB中断标志</td></tr><tr><td>ETFRC</td><td>事件触发软件强制寄存器</td><td>0x001D</td><td></td><td></td></tr></table>
+
+## 3.软件架构
+
+## （2） 驱动函数描述
+
+表9-42\~表9-49给出了ET子模块驱动函数的描述和示例。
+
+表9-42 函数PWM\_setIntMode
+
+<table><tr><td>函数名</td><td>PWM_setIntMode</td></tr><tr><td>函数原型</td><td>PWM_setIntMode(PWM_Handle pwmHandle, const PWM_IntMode_e intMode)</td></tr><tr><td>功能描述</td><td>设置中断模式</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>中断源选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置中断触发源----计数器值等于周期值，TBCTR=PRD PWM\_setIntMode(myPwm1, PWM\_IntMode\_CounterEqualPeriod);
+
+## 3.软件架构
+
+## （2）驱动函数描述
+
+表9-43 函数PWM\_setSocAPulseSrc
+
+<table><tr><td>函数名</td><td>PWM_setSocAPulseSrc</td></tr><tr><td>函数原型</td><td>PWM_setSocAPulseSrc(PWM_Handle pwmHandle, const PWM_SocPulseSrc_e pulseSrc)</td></tr><tr><td>功能描述</td><td>设置SOCA触发源</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>SOCA中断源选择,为库文件定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置SOCA触发源----计数器增计数等于比较值A时
+
+PWM\_setSocAPulseSrc（myPWM1，PWM\_SocPulseSrc\_CounterEqualCmpAIncr）;
+
+## 3.软件架构
+
+## （2）驱动函数描述
+
+表9-44 函数PWM\_enableInt
+
+<table><tr><td>函数名</td><td>PWM_enableInt</td></tr><tr><td>函数原型</td><td>PWM_enableInt(PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>使能PWM中断</td></tr><tr><td>输入参数</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//允许ePWM1中断
+
+PWM\_enableInt(myPwm1);
+
+## 3.软件架构
+
+## （2）驱动函数描述
+
+表9-45 PWM\_enableSocAPulse
+
+<table><tr><td>函数名</td><td>PWM_enableSocAPulse</td></tr><tr><td>函数原型</td><td>PWM_enableSocAPulse(PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>允许SOCA触发信号输出</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>无</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//允许SOCA触发信号输出
+
+PWM\_enableSocAPulse(myPwm1);
+
+## 3.软件架构
+
+## （2）驱动函数描述
+
+表9-46 函数PWM\_setIntPeriod
+
+<table><tr><td>函数名</td><td>PWM_setIntPeriod</td></tr><tr><td>函数原型</td><td>PWM_setIntPeriod(PWM_Handle pwmHandle, const PWM_IntPeriod_e intPeriod)</td></tr><tr><td>功能描述</td><td>设置中断频率</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>N次事件触发中断</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//每次事件触发中断
+
+PWM\_setIntPeriod(myPwm1, PWM\_IntPeriod\_FirstEvent);
+
+## 3.软件架构
+
+## （2）驱动函数描述
+
+表9-47 PWM\_setSocAPeriod
+
+<table><tr><td>函数名</td><td>PWM_setSocAPeriod</td></tr><tr><td>函数原型</td><td>PWM_setSocAPeriod(PWM_Handle pwmHandle, const PWM_SocPeriod_e intPeriod)</td></tr><tr><td>功能描述</td><td>SOCA触发周期</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>N次事件触发中断</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//每3次事件触发1次SOCA
+
+PWM\_setSocAPeriod（myPWM1，PWM\_SocPeriod\_ThirdEvent）
+
+## 3.软件架构
+
+## （2）驱动函数描述
+
+表9-48 PWM\_clearIntFlag
+
+<table><tr><td>函数名</td><td>PWM_clearIntFlag</td></tr><tr><td>函数原型</td><td>PWM_clearIntFlag(PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>清除中断标志位</td></tr><tr><td>输入参数</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//清除中断标志位EPWM1\_INT
+
+PWM\_clearIntFlag(myPwm1);
+
+## 3.软件架构
+
+## （2）驱动函数描述
+
+表9-49 PWM\_clearSocAFlag
+
+<table><tr><td>函数名</td><td>PWM_clearSocAFlag</td></tr><tr><td>函数原型</td><td>PWM_clearSocAFlag (PWM_Handle pwmHandle)</td></tr><tr><td>功能描述</td><td>清除SOCA标志位</td></tr><tr><td>输入参数1</td><td>ePWMx的结构体指针myPwmx</td></tr><tr><td>输入参数2</td><td>无</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//清除EPWM1SOCA启动标志位
+
+PWM\_clearSocAFlag（myPWM1）;
+
+使用ePWM模块时，参考以下步骤进行操作，可根据实际情况灵活使用，包括PWM模块的时钟使能、引脚配置、功能配置、中断事件配置等。
+
+## 1. 引脚配置：
+
+步骤1：配置引脚功能（GPIO\_setMode）
+
+步骤2：配置引脚方向（GPIO\_setDirection）
+
+步骤3：使能/禁止内部上拉电阻（GPIO\_setPullUp）
+
+步骤4：输入配置为异步系统时钟（GPIO\_setQualification）
+
+## 2.PWM功能配置
+
+步骤5：PWM时基时钟关闭（CLK\_disableTbClockSync(myClk)
+
+步骤6：PWM时钟设置（PWM\_setHighSpeedClkDiv、PWM\_setClkDiv）
+
+步骤7：PWM计数模式设置（PWM\_setCounterMode）
+
+步骤8：PWM动作限定设置（AQ模块）
+
+步骤9：计算PWM的周期、周期设置（PWM\_setPeriod）
+
+步骤10：计算PWM的占空比、占空比设置（CC模块）
+
+步骤11：设置PWM死区（DB模块,可选项）
+
+步骤12：设置PWM斩波（PC模块，可选项）
+
+步骤13：设置PWM故障联防（TZ模块，可选项）
+
+步骤14：PWM时基时钟开启（CLK\_enableTbClockSync）
+
+步骤15：PWM事件触发与中断管理（ET模块）
+
+## 3.中断事件配置
+
+步骤10：中断入口地址注册（PIE\_registerPieIntHandler）
+
+步骤16：PWMx事件中断使能（PWM\_enableInt）
+
+步骤17：PIE级中断使能（PIE\_enableInt）
+
+步骤18：CPU级中断使能（CPU\_enableInt）
+
+## 4. 中断服务程序
+
+在PWM中断服务程序里完成比较点的更新或其他任务，清除PWM中断标志位和对应的PIE中断应答位PIEACKx。
+
+## 3.软件架构
+
+## 寄存器及驱动函数
+
+教材表9-41为ET子模块的相关寄存器及其对应的驱动函数名。
+
+## （2） 驱动函数描述
+
+教材表9-42\~表9-49给出了ET子模块驱动函数的描述和示例。
+
+1. 项目任务  
+2. 项目分析  
+3. 部分程序代码  
+4. 文件管理  
+5. 项目实施
+
+## 1．项目任务
+
+利用PWM输出控制LED产生“呼吸灯”效果。
+
+## 2 项目分析
+
+呼吸灯的原理是利用PWM信号的特点，连续快速地调节占空比，由于每个PWM周期的时间很短，肉眼无法感知快速调节的占空比产生的信号跳变，通过逐渐改变占空比就可以实现LED由暗变亮，或由亮变暗的过程，在视觉上产生“呼吸”的效果。
+
+## 3．部分程序代码
+
+软件工程包括PWM引脚配置、功能配置、事件配置、中断使能配置、中断入口地址配置和中断函数等。参考程序见程序清单1\~程序清单4。
+
+## 4. 文件管理
+
+在第8章软件工程的基础上，在用户层增加PWM文件，包括LED\_PWM.c和LED\_PWM.h。在User\_Device.h文件中包含新增的库文件LED\_PWM.h。在中断管理文件中，增加中断入口地址配置、中断使能配置等。
+
+## 5. 项目实施
+
+第一步：导入工程chap9\_PWM\_1。
+
+第二步：编译工程，如没有错误，则会生成chap9\_PWM\_1.out文件。如有错误则修改程序直至没有错误为止。
+
+第三步：将生成的目标文件下载到MCU的Flash存储器中。
+
+第四步：运行程序，检查实验结果。观察到LED逐渐变亮，再逐渐变暗，循环进行。
+
+## 思考题：
+
+§9-1 什么是PWM? PWM的实现方式有哪几种?  
+§9-2 PWM的周期和占空比的定义是什么?  
+§9-3 如何改变PWM的占空比？  
+§9-4 F28027的ePWM模块有几个子模块？各个子模块的功能是什么？  
+§9-5 EPWM2模块输出一个连续的PWM波形，假如系统时钟为60MHz，增减计数模式，相关配置函数如下。要求PWM的周期为6400μs，占空比为20%。请计算PWM周期寄存器和比较点寄存器的设置值。
+
+PWM\_setHighSpeedClkDiv(myPwm2, PWM\_HspClkDiv\_by\_12);
+
+PWM\_setClkDiv(myPwm2, PWM\_ClkDiv\_by\_32);
+
+PWM\_setActionQual\_CntUp\_CmpA\_PwmA(myPwm2, PWM\_ActionQual\_Set);
+
+PWM\_setActionQual\_Period\_PwmA(myPwm2, PWM\_ActionQual\_Clear);
+
+## 思考题：
+
+§9-6 设计并完成项目，输出如图9-38所示波形。TB时钟为系统时钟4分频。死区时间为200个TB时钟周期。
+
+![](images/163753917192e207a67078a3605651e3e2863eb6c13effdab3597849be9998ab.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["EPWM1A"] --> B["CA"]
+  B --> C["800"]
+  C --> D["P A"]
+  D --> E["CA"]
+  E --> F["500"]
+  F --> G["Z I"]
+  G --> H["500"]
+  H --> I["CAP"]
+  I --> J["CA"]
+  J --> K["800"]
+  K --> L["P A"]
+  L --> M["CA"]
+  M --> N["500"]
+  N --> O["Z I"]
+  O --> P["500"]
+  P --> Q["CAP"]
+  Q --> R["800"]
+  R --> S["P A"]
+  S --> T["CA"]
+  T --> U["500"]
+  U --> V["Z I"]
+  V --> W["500"]
+  W --> X["CAP"]
+  X --> Y["800"]
+  Y --> Z["P A"]
+  Z --> AA["CA"]
+  AA --> AB["500"]
+  AB --> AC["Z I"]
+  AC --> AD["500"]
+  AD --> AE["CAP"]
+  AE --> AF["800"]
+  AF --> AG["P A"]
+  AG --> AH["CA"]
+  AH --> AI["500"]
+  AI --> AJ["CAP"]
+```
+</details>
+
+## 思考题：
+
+§9-7 设计并完成项目，输出如图9-39所示的波形。("TZ1" ) ̅作为PWM1A的CBC保护输入，("TZ2" ) ̅作为PWM1B的OST保护输入，当检测到按键按下时（按键用外部中断检测），可以软件解除PWM1B的OST保护。
+
+![](images/3e009f9152a12e3b1da7572690eedfcb51517c71fb4716eb4c2dd7d5259f1904.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["TBCTR"] --> B["EPWMxA"]
+  B --> C["CB"]
+  C --> D["P"]
+  D --> E["CP"]
+  E --> F["EPWMxB"]
+    style A fill:#f9f,stroke:#333
+    style B fill:#ccf,stroke:#333
+    style C fill:#cfc,stroke:#333
+    style D fill:#fcc,stroke:#333
+    style E fill:#cff,stroke:#333
+    style F fill:#ffc,stroke:#333
+```
+</details>
+
+§1. 采用EPWM1A输出一个控制Buck或Boost直流变换器开关的PWM波形，开关频率50kHz，①占空比调节范围为0-1， ②占空比大小随时间变化，在1秒内从0变为1再变为0，重复进行。  
+§2.采用EPWM1A、1B输出一个控制电流可逆斩波电路两个开关的PWM波形，开关频率40kHz，两个PWM信号互补导通且死区为0.2us，①占空比调节范围为0-1， ②占空比大小随时间变化，在1秒内从0变为1再变为0，重复进行。  
+§3. 采用EPWM1A、1B或2A输出半桥型直流变换器两个开关的PWM波形，开关频率为30kHz， ①占空比可调。  
+§4. 采用EPWM1A、1B或2A控制半桥逆变器，实现双极性SPWM波形输出，开关频率为50kHz， ①调制波幅值可调， ② 调制波频率可调。  
+§5. 采用EPWM1、2模块控制单相全桥逆变器，实现单极性和双极性SPWM波形输出，开关频率为50kHz， ①调制波幅值可调， ② 调制波频率可调。  
+§6. 采用EPWM1、2、3模块控制三相全桥逆变器，实现SPWM逆变波形输出，开关频率为50kHz， ①调制波幅值可调， ② 调制波频率可调。  
+§7. 采用EPWM1、2、3模块控制三相全桥逆变器，实现SVPWM逆变波形控制，开关频率为50kHz， ①调制波幅值可调， ② 调制波频率可调。

@@ -1,0 +1,595 @@
+## 单片机原理及应用
+
+## Principle And Application Of Microcontroller
+
+福州大学电气学院
+
+教材：《微控制器原理及应用--基于TI C2000实时微控制器》，蔡逢煌、王武、江加辉，机械工业出版社
+
+参考资料：
+
+¯TMS320F2802x, TMS320F2802xx Piccolo Technical Reference Manual.
+
+¯TMS320F2802x Microcontrollers datasheet.
+
+1 SCI的基础知识  
+2 C2000的SCI模块  
+3 SCI的软件架构  
+4 应用实例
+
+11.1.1 串行通信与并行通信  
+11.1.2 串行通信数据传输  
+11.1.3 串行通信数据传输方式  
+11.1.4 RS-232串口
+
+MCU通信的数据是以字节为单位进行传输，其中每个字节包括多个数据位，根据数据位传输方式的不同，MCU通信可分为串行通信和并行通信。
+
+1.串行通信定义：字节中的数据一位一位依次传送的通信方式，具有传输信号线少、传输距离远等优点，但传输速度慢。
+
+![](images/463bdea663422aa203543e10b585eb10ae7cb5bfc6cfa40b64a227b5c3d5d985.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["MCU"] -->|TXD| B["外设"]
+  B -->|TXD| A
+    A <--> B
+  C["接地符号"] --> A
+  C --> B
+```
+</details>
+
+2.并行通信定义：字节中的所有数据位同时传送的通信方式， 传输速度快，但是所需传输信号线多，适用于近距离通信。
+
+![](images/4f73a9c700d755ff831feaf7fbaaba164fd19519b945e621752c02d6809ab987.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+MCU与外设信号连接示意图，展示P1.0至P1.7输入输出及D0-D7输出信号的双向通信关系
+</details>
+
+3.串行通信与并行通信特点：SCI串行通信仅需接收和发送两根信号线，8位并行通信则需8根信号线。这两种通信方式除了信号线外，还需一根零电位参考线。
+
+![](images/3ab6c2cbcf027b285158840920a9c3e0af8398e824c9e616e83053f8f8db1d7d.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["MCU"] -->|TXD| B["外设"]
+  B -->|TXD| A
+    A <--> B
+  C["接地符号"] --> A
+  C --> B
+```
+</details>
+
+串行通信
+
+![](images/3f75ddcf79e96adf3d425ff9db9c5338dc020237e5d49a8625a98cd809037ccb.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+MCU与外设接线图，展示P1.0至P1.7输入输出及D0-D7输出信号的双向连接关系
+</details>
+
+并行通信
+
+数据位的表示：通信过程所传输的数据是二进制形式，也就是“0”和“1”的组合。
+
+位信息的传输：位信息在数据线上传输时则需要转换为对应的电平信号，比如，“0”对应低电平、“1”对应高电平，或者“0”对应负电平、“1”对应正电平。
+
+编码格式：根据电平与数据对应的不同形成不同的编码方式，可分成RZ编码（Return Zero Code）、NRZ(Not ReturnZero Code)和NRZI（Not Return Zero Inverted Code）等。
+
+RZ编码：在RZ编码中，正电平代表逻辑1，负电平代表逻辑0，并且每传输完一位数据信号返回到零电平，因此，数据线上存在3种电平：正电平、负电平、零电平。
+
+![](images/8b115dd2a915ac27f863d7d8bd4b1c67850a0be2422678c3c50077b74514cd36.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Time | Data | High Power | Low Power |
+|------|------|------------|-----------|
+| 0    | 0    | 0          | 0         |
+| 1    | 1    | 1          | 0         |
+| 2    | 0    | 0          | 0         |
+| 3    | 0    | 0          | 0         |
+| 4    | 1    | 1          | 0         |
+| 5    | 1    | 1          | 0         |
+</details>
+
+数据为010011b的RZ编码
+
+NRZ编码：与RZ编码不同的是，NRZ编码电平不需要归零，因此只需采用高、低两种电平即可进行数据传输，
+
+![](images/f8ab21fffffcb5f0a687d262ff7808f12f02109d620bbf624eef8f736770c52c.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Time | Data | High Power | Low Power |
+|------|------|------------|-----------|
+| 0    | 0    | 1          | 0         |
+| 1    | 1    | 0          | 0         |
+| 2    | 0    | 1          | 0         |
+| 3    | 1    | 1          | 0         |
+</details>
+
+数据为010011b的NRZ编码
+
+NRZI编码：NRZI编码使用信号的翻转代表一种逻辑，信号保持不变代表另外一种逻辑。
+
+NRZI编码与NRZ编码对比：图中上半部分为NRZ编码，下半部分为NRZI编码，“0”对应电平翻转，“1”电平保持不变。
+
+![](images/510185df8e957d3af307399b28fdc32c09e0a2679e9ec70c4c52a86c85604a17.jpg)
+
+<details>
+<summary>text_image</summary>
+
+0 1 0 0 0 1 0
+</details>
+
+串行通信帧格式：数据在信号线上传输时需要满足一定的规范，才能使得通信双方正确地收发数据。通常以帧（frame）为单位进行数据传输。
+
+![](images/ab5e744db573931b4720c1d674e1054973ecb99dd2356e005614a8617064edfc.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  A["开始位"] --> B["第0位"]
+  B --> C["第1位"]
+  C --> D["第2位"]
+  D --> E["第3位"]
+  E --> F["第4位"]
+  F --> G["第5位"]
+  G --> H["第6位"]
+  H --> I["第7位"]
+  I --> J["停止位"]
+```
+</details>
+
+上图展示了一种异步串行通信SCI的帧格式，从开始位到结束位的时间间隔称为一帧，通常一帧数据包括1位开始位、8位数据位、1到2位的停止位。
+
+串行通信波特率：异步串行通信过程中，通信双方的发送和接收步调要一致才能保证传输数据的正确接收。因此，通过波特率（Boad Rate）来实现通信双方的步调一致，波特率是用来描述数据传输的速率，单位：位/秒，记为bps（bit persecond），也就是每秒发送或接收多少位数据。
+
+常用串行通信波特率：常用的波特率有600、2400、4800、9600、19200、38400、57600、115200、128000等。
+
+应用时应当综合考虑干扰和通信距离选择一个合适的波特率，通信距离越长的时候通常选用越低的波特率。
+
+奇偶校验：在数据传输过程，通常需要进行校验以确保数据传输的正确性。奇偶校验是一种简单且常用的通信错误检测方法，就是在一帧数据中增加一位奇偶校验位用于错误检测。
+
+奇校验：奇校验时，如果数据位1的个数是奇数，则校验位为0；如果1的个数为偶数，则校验位为1。
+
+偶校验：偶校验时，如果数据位1的个数是奇数，则校验位为1；如果1的个数为偶数，则校验位为0。
+
+奇偶校验设计方法：在接收端对收到的数据进行奇偶校验，如果与收到的奇偶校验位一致，则认为数据传输过程无错误发生；如不一致，说明数据传输过程中有错误发生，此时下位机可以发送一个错误重传的信号，让上位机再次发送数据。
+
+奇偶校验弊端：由于奇偶校验只能检测出奇数个位发生的错误，如果有偶数个位同时发生错误是无法检测出来。但是这种方法比较简单，使用方便，而且发生一位错误的概率远大于两位同时发生错误的概率。
+
+串行通信传输方式：串行通信根据接线的不同，有单工、半双工、全双工三种传输方式。
+
+单工通信：数据传输是单向的，除了地线外，只有一根数据线。
+
+![](images/4a284f2e70927298e473d1dcef1b0842b3103c769b8b39f96e639ca45b210b2a.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  A["发送器"] --> B["接收器"]
+```
+</details>
+
+半双工通信：数据传输是双向的，但是只有一根数据线，发送和接收不能同时进行。
+
+![](images/fb6282e2a45c9301dd2014ea5110adc10b68478fa826f8fa9c0fff763acff2d0.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  A["发送器"] --> B["数据流"]
+  C["接收器"] --> B
+  B --> D["发送器"]
+  B --> E["接收器"]
+```
+</details>
+
+全双工通信：数据传输是双向的，有两根独立的数据线，发送和接收可以同时进行。
+
+![](images/6b1f11a6565e8fc7421e8c6c2a35e71cfc92e86003da04eeb19c76727b1f1ad6.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  A["发送器"] --> B["接收器"]
+  C["接收器"] --> D["发送器"]
+```
+</details>
+
+RS-232串口：MCU的引脚电平为TTL电平，TTL电平的“1”和“0”的特征电压分别为2.4V和0.4V，适用于芯片级数据传输。为了使传输距离更远，美国电子工业协会EIA制定了串行通信物理接口标准RS-232C。RS-232C采用负逻辑，逻辑“1”对应的电平为“-3 \~ -15V”，逻辑“0”对应的电平为“3\~15V”最大传输距离大约为30m。
+
+RS-232串口：MCU的TTL电平和RS232电平之间要互相转换，可以采用分立元器件或者集成芯片进行转换，比如MAX232芯片。RS-232接口简称“串口”，用于连接具有同样接口的设备。
+
+接收数据线
+
+![](images/3c027efb2d97ffba93bce40d137c805744e294bd7459bb22e01bbf81da39d8d8.jpg)
+
+<details>
+<summary>text_image</summary>
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+</details>
+
+数据通信设备准备就绪
+
+11.2.1 SCI概述  
+11.2.2 SCI内部结构  
+11.2.3 SCI功能描述  
+11.2.4 SCI多机通信模式
+
+## SCI概述
+
+F28027有1个SCI模块，基本特性为：
+
+2个外部引脚  
+可编程通信波特率，可以设置65535种通信波特率  
+支持4种错误检测：奇偶错误、超时错误、帧错误和间断检测  
+§ 有2种唤醒多处理器方式：空闲线唤醒和地址位唤醒  
+全双工或者半双工通信模式  
+双缓冲接收和发送功能  
+发送和接收可以采用中断和状态查询2种方式  
+独立的发送和接收中断使能控制 （BRKDT除外）  
+NRZ （not return to zero非归零）通信格式  
+自动通信速率检测  
+支持4级发送／接收FIFO
+
+SCI模块的功能框图，如右图所示。 该模块中包括波特率设置子模块、 自动波特率检测子模块、 帧格式和模式设置子模块、发送子模块、 接收子模块、中断子模块、FIFO子模块等7个部分。
+
+![](images/c3b66d6db7c21506cf612fb688ff10467d79382a196b78ca607a223e386d6bf7.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["Frame Format and Mode"] --> B["Parity Even/Odd Enable SCICCR.6 SCICCR.5"]
+  B --> C["WUT"]
+  C --> D["TXWAKE SCICTL1.3"]
+  D --> E["1"]
+  E --> F["WUT"]
+  F --> G["LSPCLK"]
+  G --> H["SCIHBAUD. 15 - 8"]
+  H --> I["Baud Rate MSbyte Register"]
+  I --> J["SCIIBAUD. 7 - 0"]
+  J --> K["Baud Rate LSbyte Register"]
+  K --> L["SCIIRXST.7 RX Error SCIRXST.4 - 2 FE OE PE"]
+  L --> M["RX Error"]
+    
+  N["TXSHF Register"] --> O["Transmitter-Data Buffer Register"]
+  O --> P["TX FIFO_0"]
+  P --> Q["TX FIFO_1"]
+  Q --> R["TX FIFO_3"]
+  R --> S["SCIIFXX.X14 SCITXBUF.7-0"]
+    
+  T["SCICTL1.1"] --> U["TXENA"]
+  U --> V["TX EMPTY SCICTL2.6"]
+  V --> W["TXRDY SCICTL2.7"]
+  W --> X["TX INT ENA SCICTL2.0"]
+  X --> Y["TX Interrupt Logic"]
+  Y --> Z["AutoBaud Detect logic"]
+    
+  AA["SCIIXT Select Logic"] --> AB["TXINT To CPU"]
+  AB --> AC["SCIRXD"]
+    
+  AD["RXSHF Register"] --> AE["RXENAT SCICTL1.0"]
+  AE --> AF["Receive Data Buffer register SCIRXBUF.7-0"]
+  AF --> AG["RX FIFO Interrupts SCIRXBUF.7-0"]
+  AG --> AH["RXFFOVF SCIFFRX.15"]
+    
+  AI["RXWAKE SCIRXST.1"] --> AJ["SCIRXD"]
+    
+  AK["RXIDY SCIRXST.6 BRKDT SCIRXST.5"] --> AL["SCICTL2.1 RX/BK INT ENA"]
+  AL --> AM["RX Interrupt Logic"]
+  AM --> AN["SCI RX Interrupt select logic"]
+    
+  AO["SCI RX Interrupt select logic"] --> AP["RXINT To CPU"]
+  AP --> AQ["SCIRXD"]
+    
+    style A fill:#f9f,stroke:#333
+    style B fill:#f9f,stroke:#333
+    style C fill:#f9f,stroke:#333
+    style D fill:#f9f,stroke:#333
+    style E fill:#f9f,stroke:#333
+    style F fill:#f9f,stroke:#333
+    style G fill:#f9f,stroke:#333
+    style H fill:#f9f,stroke:#333
+    style I fill:#f9f,stroke:#333
+    style J fill:#f9f,stroke:#333
+    style K fill:#f9f,stroke:#333
+    style L fill:#f9f,stroke:#333
+    style M fill:#f9f,stroke:#333
+    style N fill:#f9f,stroke:#333
+    style O fill:#f9f,stroke:#333
+    style P fill:#f9f,stroke:#333
+    style Q fill:#f9f,stroke:#333
+    style R fill:#f9f,stroke:#333
+    style S fill:#f9f,stroke:#333
+    style T fill:#f9f,stroke:#333
+    style U fill:#f9f,stroke:#333
+    style V fill:#f9f,stroke:#333
+    style W fill:#f9f,stroke:#333
+    style X fill:#f9f,stroke:#333
+    style Y fill:#f9f,stroke:#333
+    style Z fill:#f9f,stroke:#333
+    style AA fill:#f9f,stroke:#333
+```
+</details>
+
+（1）波特率配置：SCI的波特率由时钟LSPCLK和波特率配置寄存器控制。LSPCLK由系统时钟模块的低速外设时钟预分频寄存器配置，波特率选择寄存器为16位寄存器，有65536种不同的波特率选择。假设16位波特率配置寄存器配置值为BRR，则对应的波特率计算方法为：
+
+$$
+\text { Baud } = \text { LSPCLK } / (\text { BRR } + 1) ^ {*} 8 \quad 1 \leq \text { BRR } \leq 6 5 5 3 5
+$$
+
+$$
+\mathrm{Baud} = \mathrm{LSPCLK} / 1 6 \quad \mathrm{BRR} = 0
+$$
+
+（2）自动波特率检测：C2000系列MCU的SCI模块具备波特率自动检测功能，可利用内部硬件检测波特率并更新波特率值寄存器，具体操作步骤：
+
+ · 置位SCIRST位开始波特率自动检测；  
+ · 使能自动波特率检测（CDC=1），并清零自动波特率检测完成位ABD；  
+ · 初始化波特率为1或小于500Kbps的值；  
+ · 允许接收器接收数据，当接收到主机发来的“A”或“a”字符时，自动波特率检测完成（硬件置位ABD=1）；  
+
+
+（3）帧格式配置：图中给出了典型的SCI数据帧格式，包括：
+
+ · 1位开始位；  
+ · 1-8位数据位；  
+ · 1位地址和数据的识别位 （针对地址位方式的多机模式）  
+ · 1位可选的奇偶校验位  
+ · 1或2位停止位
+
+![](images/36d690baab80146a5fd0dc4ca5d19e141ec33bd1bb331c071ba399960a6e119f.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["Start"] --> B["LSB 2"]
+  B --> C["3"]
+  C --> D["4"]
+  D --> E["5"]
+  E --> F["6"]
+  F --> G["7"]
+  G --> H["MSB"]
+  H --> I["Parity"]
+  I --> J["Stop"]
+    
+  K["Start"] --> L["LSB 2"]
+  L --> M["3"]
+  M --> N["4"]
+  N --> O["5"]
+  O --> P["6"]
+  P --> Q["7"]
+  Q --> R["MSB"]
+  R --> S["Addr/data"]
+  S --> T["Parity"]
+  T --> U["Stop"]
+    
+    V["Idle-line mode (Normal nonmultiprocessor communications)"]
+    W["Address bit"]
+    X["Address-bit mode"]
+```
+</details>
+
+## （4）SCI发送子模块：SCI发送数据步骤：
+
+ · 发送允许位TXENA置1。  
+ · 用户程序把需要发送的数据写到SCITXBUF中，硬件清零TXRDY，禁止写入新数据。  
+ · MCU把SCITXBUF中数据传送到TXSHF寄存器，同时TXRDY=1，TXSHF寄存器按给定的波特率把数据移位至SCITXD引脚上。  
+ · 当TXRDY=1时，表示可以写下一个待发送的数据了，如果中断允许（TXINTENA=1），可以在中断程序中完成新数据的写入。
+
+## （5）SCI接收子模块：SCI接收数据步骤：
+
+ · 接收允许位RXENA=1。  
+ · 接收有两种方式：查询方式和中断方式。
+
+查询方式：查询RXRDY是否为1，为1就可读取接收缓冲寄
+
+存器SCIRXBUF值。
+
+中断方式：置位RX/BKINTENA，接收完成后系统产生一个接收中断，在中断程序里读取接收缓冲寄存器SCIRXBUF值，实际应用中常用中断方式实现数据接收。
+
+（6）SCI中断子模块：SCI模块接收和发送都可以产生中断，有独立的中断向量地址。两种中断可以独立设置为高优先级或低优先级。当它们配置为相同的优先级时，如果同时发出中断请求，CPU首先响应接收中断请求以避免接收数据丢失。
+
+（7）FIFO子模块：FIFO 是“First-In First-Out”的缩写，意为“先进先出”，是一种常见的队列操作。根据FIFO工作的时钟域，可以将FIFO分为同步FIFO和异步FIFO。C2000系列MCU的SCI模块包含有4级发送/接收FIFO 。
+
+C2000系列MCU的SCI模块支持多机通信，但是每次只能有一个发送器，其他为接收器。多机通信有两种方式：地址位方式和空闲线方式。
+
+地址位方式：按地址位方式进行多机通信时，每个站点都有个独立的地址，发送器发送的第一帧为地址帧。总线上其他的接收器都可以接收该地址帧，但只有地址相符的站点才会继续接收后续的数据，其他站点将忽略后续的数据。
+
+空闲线方式：当采用空闲线方式进行通信时，不同数据包用空闲线隔离开，该空闲线需至少维持10位或更多位的高电平信号。对于数据包内部的不同帧也用空闲线隔离开，帧间间隔少于10位高电平信号。
+
+## 使用SCI模块配置方法：
+
+## （1）引脚配置：
+
+步骤1：配置引脚功能 （GPIO\_setMode）  
+步骤2：配置引脚方向（GPIO\_setDirection）  
+§ 步骤3：使能/禁止内部上拉电阻（GPIO\_setPullUp）  
+□ 步骤4：输入配置为异步系统时钟（GPIO\_setQualification）
+
+## （2）SCI功能配置：
+
+步骤5：帧格式配置，包括：
+
+ 波特率配置（SCI\_setBaudRate ）  
+奇偶校验设置（SCI\_enableParity、SCI\_disableParity、SCI\_setParity）
+
+ 停止位设置（SCI\_setNumStopBits）
+
+ 数据长度（SCI\_setCharLength）
+
+步骤6：使能发送（SCI\_enableTx）  
+步骤7：使能接收（SCI\_enableRx）  
+§ 步骤8：多机通信模式（SCI\_setMode）（可选项）
+
+步骤9：FIFO接收或发送 （可选项）  
+§ 步骤10：启动SCI模块（CAP\_enableCaptureLoad）  
+步骤11：中断入口地址注册（PIE\_registerPieIntHandler）  
+步骤12：SCI中断使能（SCI\_enableTxInt、SCI\_enableRxInt）或FIFO中断使能（可选项）  
+步骤13：PIE级中断使能（PIE\_enableInt）  
+步骤14：CPU级中断使能（CPU\_enableInt）
+
+## （3） 中断事件配置：
+
+步骤11：中断入口地址注册（PIE\_registerPieIntHandler）  
+§ 步骤12：SCI中断使能（SCI\_enableTxInt、SCI\_enableRxInt）或FIFO中断使能（可选项）  
+步骤13：PIE级中断使能（PIE\_enableInt）  
+步骤14：CPU级中断使能 （CPU\_enableInt）
+
+## （4） 中断服务程序：
+
+§ 在SCI发送中断服务程序里完成新数据的写入，在SCI接收中断程序里完成数据的读取和存储。清除发送中断标志位或接收中断标志位，清除对应的PIE中断应答位PIEACKx。
+
+![](images/e69575e65ff84b0243c1134694db51952aa20039624f473ddfff7da10c232c17.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SCI"] --> B["时钟"]
+  A --> C["引脚配置"]
+  A --> D["功能配置"]
+  A --> E["中断配置"]
+  A --> F["中断服务程序"]
+    
+  B --> G["SCI时钟使能"]
+  C --> H["配置引脚功能"]
+  C --> I["配置引脚方向"]
+  C --> J["使能/禁止内部上拉电阻"]
+  C --> K["输入配置为异步系统时钟"]
+    
+  D --> L["帧格式配置"]
+  D --> M["使能发送"]
+  D --> N["使能接收"]
+  D --> O["多机通讯模式"]
+  D --> P["FIFO接收或发送"]
+  D --> Q["启动SCI模块"]
+    
+  E --> R["中断入口地址注册"]
+  E --> S["SCI中断使能或FIFO中断使能"]
+  E --> T["PIE级中断使能"]
+  E --> U["CPU级中断使能"]
+    
+  F --> V["......"]
+    
+  L --> W["波特率配置"]
+  L --> X["奇偶校验设置"]
+  L --> Y["停止位设置"]
+  L --> Z["数据长度"]
+```
+</details>
+
+## 1. 项目任务
+
+任务1：通过查询方式实现1个数据的发送和接收。利用串口调试助手测试。
+
+任务2：通过中断方式实现多个数据的发送和接收。利用串口调试助手测试。
+
+## 2. 项目分析
+
+通过电脑端串口调试助手向F28027发送数据，F28027把收到的数据回送到串口调试助手显示。
+
+## 3. 项目实施
+
+项目实施步骤如下。
+
+第一步：导入工程chap11\_SCI\_1。
+
+第二步：查收方式测试时，主程序调用SCI\_Test函数，关闭中断总开关。中断方式测试时，主程序调用SCI\_ExchgeData函数，使能中断总开关INTM。
+
+第三步：编译工程，如没有错误，则会生成chap11\_SCI\_1.out文件。如有错误则修改程序直至没有错误为止。
+
+第四步：将生成的目标文件下载到MCU的Flash存储器中。
+
+第五步：打开串口调试工具， 配置好帧格式。 在发送窗口输入数据，点击发送， 在接收窗口将显示相应的数据。 串口调试助手界面如图所示。
+
+![](images/1578aeb90bb3d4cc93f3c96782294af4d41e36a3c65f87924e1e1d11e6d38d0c.jpg)
+
+<details>
+<summary>text_image</summary>
+
+COM8 - XDS100 Class USB Serial Port
+端口设置
+✓标准波特率
+波特率 9600
+校验位 无校验
+数据位 8位
+停止位 1位
+□不占用时自动打开
+关闭串口
+多机通讯功能设置
+方式 多机通讯功能关
+地址 DEC 001 HEX 01
+接受区设置
+□接收另存为文件...
+打开文件 打开文件夹
+□自动换行显示
+□十六进制显示
+□暂停接受显示
+清空接受缓冲
+发送区设置
+□启用文件数据源...
+打开文件 打开文件夹
+□发送完自动清空
+□自动发送附加位...
+□十六进制输入
+□自动循环发送
+循环时间 1 *100ms
+清空发送缓冲
+正常显示状态
+1.CD 2.RXD 3.TXD ✓4.DTR 5.GND 6.DSR ✓7.RTS ✓8.CTS 9.RI
+3
+Enter a character: 3
+Enter a character:
+3
+发送
+CTRL+ENTER
+NONE
+</details>
+
+## 思考题：
+
+§11-1 串行通信和并行通信各有什么特点?  
+§11-2 异步通信和同步通信各有什么特点?  
+§11-3 什么是波特率？波特率的单位是什么?  
+§11-4 串行通信的数据帧格式是什么?  
+§11-5 RS232总线标准是什么?TTL电平和RS232电平如何转换?  
+§11-6 理解F28027SCI模块的工作原理。  
+§11-7 设计并完成项目，利用FIFO功能实现应用实例的任务。  
+§11-8 设计并完成项目，实现功能：利用3块TMS320F28027LauchPAD实验板进行多机通信，其中1个主机，2个从机。当主机按键短按时，主机控制1号从机的LED1亮暗，当主机按键长按时，主机控制2号从机的LED1亮暗。

@@ -81,7 +81,7 @@
 `main.c`
 - 未改动。老师原有初始化顺序包含 LED_GPIO、KEY、myTimer、PIE。
 
-### chap9
+### chap9(easy)
 
 目标：使用 ePWM1A 输出 PWM 驱动 LED1 呼吸灯，EPWM1 中断周期性改变占空比。
 
@@ -94,14 +94,20 @@
 
 `Application/isr.c`
 - `LED_EPWM1_isr()` 中 `direction` 类型改为 `static uint16_t`。
-- 呼吸范围从 0~20000（步长 5）改为 0~`PWM_BREATH_PERIOD`（步长 `PWM_BREATH_STEP`），覆盖全占空比。
+- 呼吸范围从 0 - 20000（步长 5）改为 0 - `PWM_BREATH_PERIOD`（步长 `PWM_BREATH_STEP`），覆盖全占空比。
 - 变亮/变暗分支加边界保护，避免 `uint16_t` 下溢绕回 65535。
 - 删除重复的 `PWM_clearIntFlag` 和 `PIE_clearInt` 调用。
-- 修正 PIE 组注释：group 1 → group 3。
+- 修正 PIE 组注释：group 1 -> group 3。
 
 `main.c`、`User_Component/User_Pie/User_Pie.c`、`User_Component/User_System/User_System.c`
 - 未改动。老师原有代码已包含必要的 PWM 模块初始化、PIE 中断注册（Timer0+EPWM1+ECAP）和外设时钟使能。Timer0 和 ECAP 虽在 PIE 中注册，但 Timer0 时钟未使能且 main 中未初始化，不会产生实际中断。
 
+### chap9(multiple)
+
+目标：按钮控制不同呼吸灯模式，如短按触发 LED1 和 LED3 呼吸灯，长按触发 LED2 和 LED4 呼吸灯
+
+
+
 ### chap8 / chap10 / chap11
 
-这三个章节（CAP 捕获、ADC 模数转换、SCI 串口通信）未做，代码保持 `teacher-origin` 分支原样。
+老师上课未作要求，代码保持 `teacher-origin` 原样。

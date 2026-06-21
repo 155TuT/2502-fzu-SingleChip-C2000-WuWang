@@ -1,0 +1,732 @@
+## 单片机原理及应用
+
+## Principle And Application Of Microcontroller
+
+福州大学电气学院
+
+教材：《微控制器原理及应用--基于TI C2000实时微控制器》，蔡逢煌、王武、江加辉，机械工业出版社
+
+参考资料：
+
+¯TMS320F2802x, TMS320F2802xx Piccolo Technical Reference Manual.
+
+¯TMS320F2802x Microcontrollers datasheet.
+
+捕获模块的基础知识  
+2 C2000的eCAP  
+3 eCAP的软件架构  
+4 应用实例---“捕捉瞬息万变”
+
+## 8.1.1 捕获模块的基础知识
+
+1. 捕获模块：捕获模块可以捕获MCU引脚的电平跳变（上升沿、下降沿），并记录电平跳变的时刻。跟定时器模块一样，捕获模块也有对时间的处理，也是通过计数器来实现的。 捕获模块可以用于外部事件的精确时间测量。只要被检测信号能够转换为脉冲信号，捕获模块就可以对该脉冲信号进行捕获，
+
+## 2.捕获模块的应用：
+
+ 电机的转速测量（需要利用传感器把转速转换为脉冲信号）  
+ 脉冲信号的周期和占空比测量  
+ 位置传感器输出脉冲的时间测量  
+ 脉冲编码型电压或电流传感器的电压或电流幅值的测量
+
+8.2.1 eCAP的概述  
+8.2.2 eCAP的内部结构  
+8.2.3 eCAP的功能描述
+
+## eCAP模块的主要特性：
+
+ 32位计数时基  
+ 4个32位的事件时间戳寄存器（CAP1-CAP4）  
+ 4级序列器，与捕获输入信号的上升沿或下降沿同步  
+ 输入捕获信号的预分频（2-62分频）  
+ 4个捕获事件的边沿极性可独立选择  
+ 差分 （Delta） 模式时间戳捕获  
+ 绝对（Absolute）模式时间戳捕获
+
+## eCAP模块的主要特性：
+
+单触发捕获模式：捕获1-4个事件后停止捕获
+
+连续捕获模式：循环进行1-4个事件的捕获
+
+中断功能：4个捕获事件都可以触发中断
+
+捕获模式不使用时，eCAP模块可以配置为单通道PWM输出
+
+eCAP功能框图：  
+![](images/aff1eca82c4a215146927874f150dee94376c6117354684e91bfe9bd732b16fa.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SYNC"] --> B["CTRPHS (phase register-32 bit)"]
+  B --> C["TSCTR (counter-32 bit)"]
+  C --> D["CTR_OVF"]
+  D --> E["CTR_OVF"]
+  E --> F["CPD mode"]
+  F --> G["PWM compare logic"]
+  G --> H["ACMP selection"]
+  H --> I["Polarity select"]
+  I --> J["Event Prescale"]
+  J --> K["ECCTL1[EVTPS"]]
+  K --> L["Continuous / Oneshot Capture Control"]
+  L --> M["Continuous / Oneshot Capture"]
+  M --> N["CAPI1 (APRD active)"]
+  N --> O["CAP2 (ACMP active)"]
+  O --> P["CAP3 (APRD shadow)"]
+  P --> Q["CAP4 (ACMP shadow)"]
+  Q --> R["CAP1"]
+  R --> S["APRD shadow"]
+  S --> T["CAP2"]
+  T --> U["CAP3"]
+  U --> V["CAP4"]
+  V --> W["CAPI1"]
+  W --> X["CAP2"]
+  X --> Y["CAP3"]
+  Y --> Z["CAP4"]
+  Z --> AA["CAPI1"]
+  AA --> AB["CAP2"]
+  AB --> AC["CAP3"]
+  AC --> AD["CAP4"]
+  AD --> AE["CAPI1"]
+  AE --> AF["CAP2"]
+  AF --> AG["CAP3"]
+  AG --> AH["CAP4"]
+  AH --> AI["CAPI1"]
+    
+    subgraph Signal Path
+  B -->|SYNC| B
+  C -->|SYNCOut| C
+  D -->|OVF| D
+  E -->|RST| E
+  F -->|CTR["0-31"]| F
+  G -->|CPRD["0-31"]| G
+  H -->|CMP["0-31"]| H
+  I -->|CTR=PRD| I
+  J -->|CTR=CMP| J
+  K -->|ECCTL1["CAPLDEN, CTRRSTx"]| K
+  L -->|ECCTL2["CAPX"]| L
+  M -->|ECCTL2["RE-ARM, CONT/ONESHT, STOP_WRAP"]| M
+  N -->|Polarity select| N
+  O -->|Polarity select| O
+  P -->|Polarity select| P
+  Q -->|Polarity select| Q
+  R -->|Polarity select| R
+  S -->|Polarity select| S
+  T -->|Polarity select| T
+  U -->|Polarity select| U
+  V -->|Polarity select| V
+  W -->|Polarity select| W
+  X -->|Polarity select| X
+  Y -->|Polarity select| Y
+  Z -->|Polarity select| Z
+  AA -->|Polarity select| AA
+  AB -->|Polarity select| AB
+  AC -->|Polarity select| AC
+  AD -->|Polarity select| AD
+  AE -->|Polarity select| AE
+  AF -->|Polarity select| AF
+  AG -->|Polarity select| AG
+  AH -->|Polarity select| AH
+  AI -->|Polarity select| AI
+  AJ -->|Polarity select| AJ
+  AK -->|Polarity select| AK
+  AL -->|Polarity select| AL
+  AM -->|Polarity select| AM
+  AN -->|Polarity select| AN
+  AO -->|Polarity select| AO
+  AP -->|Polarity select| AP
+  AQ -->|Polarity select| AQ
+  AR -->|Polarity select| AR
+  AS -->|Polarity select| AS
+  AT -->|Polarity select| AT
+  AU -->|Polarity select| AU
+  AV -->|Polarity select| AV
+  AW -->|Polarity select| AW
+  AX -->|Polarity select| AX
+  AY -->|Polarity select| AY
+  AZ -->|Polarity select| AZ
+  BA -->|Polarity select| BA
+  BB -->|Polarity select| BB
+  BC -->|Polarity select| BC
+  DA -->|Polarity select| DA
+  AE -->|Polarity select| AE
+  AF -->|Polarity select| AF
+  AG -->|Polarity select| AG
+  AH -->|Polarity select| AH
+  AI -->|Polarity select| AI
+  AJ -->|Polarity select| AJ
+  AK -->|Polarity select| AK
+  AL -->|Polarity select| AL
+  AM -->|Polarity select| AM
+  AN -->|Polarity select| AO
+  AO -->|Polarity select| AO
+    
+    style A fill:#f9f,stroke:#333
+    style B fill:#ccf,stroke:#333
+    style C fill:#cfc,stroke:#333
+    style D fill:#fcc,stroke:#333
+    style E fill:#cff,stroke:#333
+    style F fill:#ffc,stroke:#333
+    style G fill:#fcc,stroke:#333
+    style H fill:#ffc,stroke:#333
+    style I fill:#fcc,stroke:#333
+    style J fill:#fcc,stroke:#333
+    style K fill:#fcc,stroke:#333
+    style L fill:#fcc,stroke:#333
+    style M fill:#fcc,stroke:#333
+    style N fill:#fcc,stroke:#333
+    style O fill:#fcc,stroke:#333
+    style P fill:#fcc,stroke:#333
+    style Q fill:#fcc,stroke:#333
+    style R fill:#fcc,stroke:#333
+    style S fill:#fcc,stroke:#333
+    style T fill:#fcc,stroke:#333
+    style U fill:#fcc,stroke:#333
+    style V fill:#fcc,stroke:#333
+    style W fill:#fcc,stroke:#333
+    style X fill:#fcc,stroke:#333
+    style Y fill:#fcc,stroke:#333
+    style Z fill:#fcc,stroke:#333
+    style AA fill:#fcc,stroke:#333
+    style AB fill:#fcc,stroke:#333
+    style AC fill:#fcc,stroke:#333
+    style AD fill:#fcc,stroke:#333
+    style AE fill:#fcc,stroke:#333
+    style AF fill:#fcc,stroke:#333
+    style AG fill:#fcc,stroke:#333
+    style AH fill:#fcc,stroke:#333
+    style AI fill:#fcc,stroke:#333
+    style AJ fill:#fcc,stroke:#333
+    style AK fill:#fcc,stroke:#333
+    style AL fill:#fcc,stroke:#333
+    style AM fill:#fcc,stroke:#333
+    style AN fill:#fcc,stroke:#333
+    style AO fill:#fcc,stroke:#333
+```
+</details>
+
+Registers:ECEINT,ECFLG,ECCLR,ECFRC
+
+输入信号经过事件预分频（Event prescale）、极性选择
+
+（Polarity select）后到达事件决策模块（Event qualifier）。
+
+事件决策模块根据捕获模式（Continuous/Oneshot Capture
+
+Control）的配置，产生装载捕获寄存器的触发信号
+
+（LD1\~LD4），把捕获计数器（TSCTR）的当前值CTR装载到
+
+捕获寄存器中（CAP1、CAP2、CAP3、CAP4）。根据复位配
+
+置（CTRRSTx）可输出信号（Delta mode）复位捕获计数器。
+
+捕获事件（Capture events）可发出捕获事件中断信号（CEVT）
+
+给PIE。另外，eCAP1\~ eCAP4可通过时钟同步信号（SYNCIn）
+
+进行计数器初始值（CTRPHS）的装载。
+
+1.预分频 ：预分频器可以对输入脉冲信号进行预分频（2-62分频，2的倍数），或者直接旁路，不经过预分频器。
+
+![](images/7d84847c721cbfa2ba17a1d8c7fc022ba46bc2cf961011c147712ec8c564d87a.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  A["PSout"] --> B["0"]
+  B --> C["1"]
+  C --> D["/n"]
+  D --> E["ECCTL1[EVTPS"] prescaler["5 bits"] (counter)]
+  E --> F["ECAPx pin (from GPIO)"]
+  G["By-pass"] --> B
+  H["5"] --> D
+  I["Event prescaler"] --> D
+```
+</details>
+
+![](images/52ad34d7d4a2898be4f247a05002e755b9246933b27cdde211b89a9ae85324bd.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| Signal          | Value |
+|-----------------|-------|
+| ECAPx           | High  |
+| PSout div 2     | High  |
+| PSout div 4     | High  |
+| PSout div 6     | High  |
+| PSout div 8     | High  |
+| PSout div 10    | High  |
+</details>
+
+事件预分频控制功能框图  
+预分频波形
+
+2.边沿极性选择 ：边沿极性可以选择上升沿捕获或下降沿捕获。eCAP模块有4个独立的边沿极性选择，每一个分别对应一个捕获事件。
+
+## 3.连续/单次模式控制
+
+1）Modulo 4 counter：事件触发计数器，由捕获事件触发计数。计数值只能是0、1、2、3。
+
+![](images/a29df47e4932e4af4b14f9ce80c478a017d476a74257f8abc0c7d3f9d5b5b344.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["0 1 2 3 2:4 MUX"] --> B["Modulo 4 counter"]
+  B --> C["One-shot control logic"]
+  C --> D["Stop value (2b)"]
+  D --> E["ECCTL2[STOP_WRAP"]]
+  B --> F["Stop"]
+  F --> G["Mod_eq"]
+  G --> C
+  H["CEVT1"] --> I["OR"]
+  J["CEVT2"] --> I
+  K["CEVT3"] --> I
+  L["CEVT4"] --> I
+  I --> C
+  M["ECCTL2[RE-ARM"] ECCTL2["CONT/ONESHT"]] --> C
+```
+</details>
+
+2）Stop value：单次停止计数（STOP）或连续循环计数（WRAP）的比较值。  
+3）One-shot control logic：连续模式/单次模式的选择。  
+4）RE-ARM：重装载控制。在单次模式时，如果RE-ARM=1，那么Mod 4将被复位，开始新一轮的捕获计数和装载，一直到Mod4的计数值与Stop value相等时停止。
+
+4.事件决策 ：事件决策模块综合各子模块的配置（极性选择、连续/单次模式），当有符合要求的外部事件输入时产生装载捕获寄存器的触发信号（LD1\~LD4）。根据配置可输出计数器复位信号（Delta mode）和捕获事件中断信号。
+
+5.捕获寄存器 ：捕获寄存器共有4个：CAP1、CAP2、CAP3和CAP4。捕获事件发生时，如果允许寄存器装载计数值（由CAPLDEN控制），那么触发信号（LD1、LD2、LD3或LD4）将触发CAP寄存器装载计数器TSCTR的当前值。
+
+## 6.32位计数器和相位控制 ：该子
+
+模块为eCAP模块提供时基信号。
+
+32位计数器TSCTR提供捕获事
+
+件的计数时基，该计数器的时
+
+钟源为系统时钟SYSCLK。有两
+
+种情况可以打断计数器当前的
+
+计数：相位同步和差分模式。
+
+![](images/119868496a070aad223df3c444c6cf00e13799a8c10d544614bc97561294f885.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["ECCTL2[SYNCI_EN"]] --> B["AND"]
+  B --> C["ECCTL2[SWSYNC"]]
+  C --> D["SYNCO"]
+  D --> E["Sync out select"]
+  F["CTSCTR"] --> G["LD_CTRPHS"]
+  G --> H["RSST"]
+  H --> I["TSCTR (counter 32b)"]
+  I --> J["CLK"]
+  J --> K["SYSCLK"]
+  L["CPTRPHS"] --> M["LD_CTRPHS"]
+  M --> N["RSST"]
+  N --> O["TSCTR (counter 32b)"]
+  P["CPTRPHS"] --> Q["LD_CTRPHS"]
+  Q --> R["RSST"]
+  R --> S["TSCTR (counter 32b)"]
+  T["CPTRPHS"] --> U["LD_CTRPHS"]
+  U --> V["RSST"]
+  V --> W["TSCTR (counter 32b)"]
+  X["CPTRPHS"] --> Y["LD_CTRPHS"]
+  Y --> Z["RSST"]
+  Z --> AA["TSCTR (counter 32b)"]
+  AB["CPTRPHS"] --> AC["LD_CTRPHS"]
+  AC --> AD["RSST"]
+  AD --> AE["TSCTR (counter 32b)"]
+  AF["CPTRPHS"] --> AG["LD_CTRPHS"]
+  AG --> AH["RSST"]
+  AH --> AI["TSCTR (counter 32b)"]
+  AJ["CPTRPHS"] --> AK["LD_CTRPHS"]
+  AK --> AL["RSST"]
+  AL --> AM["TSCTR (counter 32b)"]
+  AN["CPTRPHS"] --> AO["LD_CTRPHS"]
+  AO --> AP["RSST"]
+  AP --> AQ["TSCTR (counter 32b)"]
+  AR["CPTRPHS"] --> AS["LD_CTRPHS"]
+  AS --> AT["RSST"]
+  AT --> AU["TSCTR (counter 32b)"]
+  AV["CPTRPHS"] --> AW["LD_CTRPHS"]
+  AW --> AX["RSST"]
+  AX --> AY["TSCTR (counter 32b)"]
+  AZ["CPTRPHS"] --> BA["LD_CTRPHS"]
+  BA --> BB["RSST"]
+  BB --> BC["TSCTR (counter 32b)"]
+  BD["CPTRPHS"] --> BE["LD_CTRPHS"]
+  BE --> BF["RSST"]
+  BF --> BG["TSCTR (counter 32b)"]
+  BH["CPTRPHS"] --> BI["LD_CTRPHS"]
+  BI --> BJ["RSST"]
+  BJ --> BK["TSCTR (counter 32b)"]
+  BL["CPTRPHS"] --> BM["LD_CTRPHS"]
+  BM --> BN["RSST"]
+  BN --> BO["TSCTR (counter 32b)"]
+  BP["CPTRPHS"] --> BQ["LD_CTRPHS"]
+  BQ --> BR["RSST"]
+  BR --> BS["TSCTR (counter 32b)"]
+  BT["CPTRPHS"] --> BU["LD_CTRPHS"]
+  BU --> BV["RSST"]
+  BV --> BW["TSCTR (counter 32b)"]
+  BX["CPTRPHS"] --> BY["LD_CTRPHS"]
+  BY --> BZ["RSST"]
+  BZ --> CA["TSCTR (counter 32b)"]
+  CB["CPTRPHS"] --> CC["LD_CTRPHS"]
+  CC --> CD["RSST"]
+  CD --> CE["TSCTR (counter 32b)"]
+  CF["CPTRPHS"] --> CG["LD_CTRPHS"]
+  CG --> DH["RSST"]
+  DH --> DI["TSCTR (counter 32b)"]
+  DJ["CPTRPHS"] --> DK["LD_CTRPHS"]
+  DK --> DL["RSST"]
+  DL --> DJ["TSCTR (counter 32b)"]
+  DKL["CPTRPHS"] --> ME["CLR"]
+  ME --> NE["CLR"]
+  NE["CLR"] --> O["CLR"]
+  O["CLR"] --> P["CLR"]
+  P["CLR"] --> Q["CLR"]
+```
+</details>
+
+相位同步 ：如果允许相位同步控制，即
+
+ECCTL2[SYNCI\_EN]=1，那么硬件同步信号（SYNC）或软件强制同步信号（SWSYNC）可以触发计数器TSCTR装载初始计数值CTRPHS。
+
+差分模式 ：如果捕获方式设置为差分方式，捕获事件装载计数值后复位TSCTR。任何一个装载完成信号LD1\~LD4都可以触发Dleta\_mode信号复位TSCTR。
+
+## 7.eCAP中断控制：eCAP捕获模式时有5个中断事件，即捕获事
+
+件1（CEVT1）、捕获事件2（CEVT2）、捕获事件3
+
+（CEVT3）、捕获事件4（CEVT4）、TSCTR计数器溢出
+
+（CTROVF） （计数值从FFFFFFFF回到00000000）。
+
+每个中断事件都有中断允许（ECEINT）、中断标志位
+
+（ECFLG）、中断标志位清零（ECCLR）和强制中断
+
+（ECFRC） 四种要素。
+
+中断框图  
+![](images/d0fc6c8f53699f106eca9bbc61fda45afbcaf8147174b8723b33b66687726965.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["ECAPxINT"] --> B["Generate interrupt pulse when input=1"]
+  B --> C["1"]
+  C --> D["0"]
+  D --> E["0"]
+  E --> F["ECFLG"]
+  F --> G["Clear Latch Set"]
+  G --> H["ECCLR"]
+  F --> I["Clear Latch Set"]
+  I --> J["ECFLG"]
+  J --> K["Clear Latch Set"]
+  K --> L["ECFLG"]
+  L --> M["Clear Latch Set"]
+  M --> N["ECFLG"]
+  N --> O["Clear Latch Set"]
+  O --> P["ECFLG"]
+  P --> Q["Clear Latch Set"]
+  Q --> R["ECFLG"]
+  R --> S["Clear Latch Set"]
+  S --> T["ECFLG"]
+  T --> U["Clear Latch Set"]
+  U --> V["ECFLG"]
+  V --> W["Clear Latch Set"]
+  W --> X["ECFLG"]
+  X --> Y["Clear Latch Set"]
+  Y --> Z["ECFLG"]
+  Z --> AA["Clear Latch Set"]
+  AA --> AB["ECFLG"]
+  AB --> AC["Clear Latch Set"]
+  AC --> AD["ECFLG"]
+  AD --> AE["Clear Latch Set"]
+  AE --> AF["ECFLG"]
+  AF --> AG["Clear Latch Set"]
+  AG --> AH["ECFLG"]
+  AH --> AI["Clear Latch Set"]
+  AI --> AJ["ECFLG"]
+  AJ --> AK["Clear Latch Set"]
+  AK --> AL["ECFLG"]
+  AL --> AM["Clear Latch Set"]
+  AM --> AN["ECFLG"]
+  AN --> AO["Clear Latch Set"]
+  AO --> AP["ECFLG"]
+  AP --> AQ["Clear Latch Set"]
+  AQ --> AR["ECFLG"]
+  AR --> AS["Clear Latch Set"]
+  AS --> AT["ECFLG"]
+  AT --> AU["Clear Latch Set"]
+  AU --> AV["ECFLG"]
+```
+</details>
+
+8.3.1 寄存器及驱动函数  
+8.3.2 驱动函数描述  
+8.3.3 软件思维导图
+
+eCAP寄存器及其驱动函数表
+
+<table><tr><td>寄存器</td><td>描述</td><td>地址</td><td>驱动函数名</td><td>功能</td></tr><tr><td>TSCTR</td><td>时间戳计数器</td><td>0x6A00</td><td>CAP_getTSCTR</td><td>读取并保存TSCTR的值</td></tr><tr><td>CTRPHS</td><td>计数相位偏移值寄存器</td><td>0x6A02</td><td>CAP_setCTRPHS</td><td>配置计数器初值</td></tr><tr><td>CAP1</td><td>捕获寄存器1</td><td>0x6A04</td><td>CAP_getCap1</td><td>读取CAP1的值</td></tr><tr><td>CAP2</td><td>捕获寄存器2</td><td>0x6A06</td><td>CAP_getCap2</td><td>读取CAP2的值</td></tr><tr><td>CAP3</td><td>捕获寄存器3</td><td>0x6A08</td><td>CAP_getCap3</td><td>读取CAP3的值</td></tr><tr><td>CAP4</td><td>捕获寄存器4</td><td>0x6A0A</td><td>CAP_getCap4</td><td>读取CAP4的值</td></tr><tr><td>ECCTL1</td><td>cCAP控制寄存器1</td><td>0x6A14</td><td>CAP_setprescalerCAP_setCapEvtPolarityCAP_setCapEvtResetCAP_enableCaptureLoadCAP_disableCaptureLoad</td><td>配置输入信号分频系数配置捕获事件极性配置计数器计数模式使能捕获装载禁止捕获装载</td></tr><tr><td>ECCTL2</td><td>eCAP控制寄存器2</td><td>0x6A15</td><td>CAP_setModeCapCAP_enableTimestampCounterCAP_disableTimestampCounterCAP_enableSyncInCAP_disableSyncInCAP_setStopWrapCAP_setCapContinuousCAP_setCapOneShotCAP_rearm</td><td>启用捕获模式使能捕获的计数器 禁止捕获的计数器 使能相位同步禁止相位同步配置捕获事件的次数配置为连续捕获模式配置为单次捕获模式重新装载</td></tr><tr><td>ECEINT</td><td>eCAP中断使能寄存器</td><td>0x6A16</td><td>CAP_disableIntCAP_enableInt</td><td>禁止捕获事件触发中断使能捕获事件触发中断</td></tr><tr><td>ECFLG</td><td>eCAP中断标志寄存器</td><td>0x6A17</td><td></td><td>指示是否有中断使能</td></tr><tr><td>ECCLR</td><td>eCAP中断清除寄存器</td><td>0x6A18</td><td>CAP_clearInt</td><td>清除中断标志位</td></tr><tr><td>ECFRC</td><td>eCAP中断强制寄存器</td><td>0x6A19</td><td></td><td>强制中断事件</td></tr></table>
+
+## eCAP模块驱动函数的描述和示例
+
+函数CAP\_getCap1
+
+<table><tr><td>函数名</td><td>CAP_getCap1</td></tr><tr><td>函数原型</td><td>uint32_t CAP_getCap1(CAP_Handle capHandle)</td></tr><tr><td>功能描述</td><td>读取捕获寄存器的值并保存</td></tr><tr><td>输入参数</td><td>eCAP的结构体指针myCap</td></tr><tr><td>返回值</td><td>捕获值</td></tr></table>
+
+示例：
+
+//读取捕获寄存器1的值并保存到CapValue\_CAP1变量中
+
+CapValue\_CAP1 = CAP\_getCap1 ( myCap);
+
+函数CAP\_setprescaler
+
+<table><tr><td>函数名</td><td>CAP_setprescaler</td></tr><tr><td>函数原型</td><td>void CAP_setprescaler (CAP_Handle capHandle, CAP_Prescale_By_e)</td></tr><tr><td>功能描述</td><td>输入事件分频系数</td></tr><tr><td>输入参数1</td><td>eCAP的结构体指针myCap</td></tr><tr><td>输入参数2</td><td>分频系数,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//输入事件进行两分频处理
+
+CAP\_setprescalermyCap, CAP\_Prescale\_By\_2)；
+
+函数CAP\_setCapEvtPolarity
+
+<table><tr><td>函数名</td><td>CAP_setCapEvtPolarity</td></tr><tr><td>函数原型</td><td>void CAP_setCapEvtPolarity(CAP_Handle capHandle, const CAP_Event_e event, const CAP_Polarity_e polarity)</td></tr><tr><td>功能描述</td><td>设置捕获事件的捕获极性</td></tr><tr><td>输入参数1</td><td>eCAP的结构体指针myCap</td></tr><tr><td>输入参数2</td><td>捕获事件号,为库函数定义的枚举变量</td></tr><tr><td>输入参数3</td><td>捕获极性,上升沿或下降沿,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置捕获事件1为上升沿捕获
+
+CAP\_setCapEvtPolarity(myCap,CAP\_Event\_1,CAP\_Polarity\_Rising);
+
+函数CAP\_setCapEvtReset
+
+<table><tr><td>函数名</td><td>CAP_setCapEvtReset</td></tr><tr><td>函数原型</td><td>void CAP_setCapEvtReset(CAP_Handle capHandle, const CAP_Event_e event, const CAP_Reset_e reset)</td></tr><tr><td>功能描述</td><td>设置计数器为差分模式或绝对值模式</td></tr><tr><td>输入参数1</td><td>eCAP的结构体指针myCap</td></tr><tr><td>输入参数2</td><td>捕获次数,为库函数定义的枚举变量</td></tr><tr><td>输入参数3</td><td>计数器使能或禁止,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//捕获事件2发生时，复位TSCTR，差分模式
+
+CAP\_setCapEvtReset ( myCap, CAP\_Event\_2 , CAP\_Reset\_Enable);
+
+//捕获事件3发生时，不复位TSCTR，绝对值模式
+
+CAP\_setCapEvtReset ( myCap, CAP\_Event\_3 , CAP\_Reset\_Disable);
+
+函数CAP\_enableCaptureLoad
+
+<table><tr><td>函数名</td><td>CAP_enableCaptureLoad</td></tr><tr><td>函数原型</td><td>void CAP_enableCaptureLoad(CAP_Handle capHandle)</td></tr><tr><td>功能描述</td><td>使能捕获装载</td></tr><tr><td>输入参数</td><td>eCAP的结构体指针myCap</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//使能捕获装载
+
+CAP\_enableCaptureLoad(myCap);
+
+函数CAP\_ setModeCap
+
+<table><tr><td>函数名</td><td>CAP_setModeCap</td></tr><tr><td>函数原型</td><td>void CAP_setModeCap (CAP_Handle capHandle)</td></tr><tr><td>功能描述</td><td>启用捕获模式</td></tr><tr><td>输入参数</td><td>eCAP的结构体指针myCap</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//启用捕获模式
+
+CAP\_ setModeCap (myCap);
+
+函数CAP\_enableTimestampCounter
+
+<table><tr><td>函数名</td><td>CAP_enableTimestampCounter</td></tr><tr><td>函数原型</td><td>void CAP_enableTimestampCounter(CAP_Handle capHandle)</td></tr><tr><td>功能描述</td><td>启动捕获的计数器</td></tr><tr><td>输入参数</td><td>eCAP的结构体指针myCap</td></tr><tr><td>返回值</td><td>无</td></tr><tr><td colspan="2">示例://捕获计数器开始计数CAP_enableTimestampCounter (myCap);</td></tr></table>
+
+函数CAP\_enableSyncIn
+
+<table><tr><td>函数名</td><td>CAP_enableSyncIn</td></tr><tr><td>函数原型</td><td>void CAP_enableSyncIn(CAP_Handle capHandle)</td></tr><tr><td>功能描述</td><td>使能相位同步</td></tr><tr><td>输入参数</td><td>eCAP的结构体指针myCap</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：//使能相位同步CAP\_enableSyncIn ( myCap)；
+
+函数CAP\_setStopWrap
+
+<table><tr><td>函数名</td><td>CAP_setStopWrap</td></tr><tr><td>函数原型</td><td>void CAP_setStopWrap(CAP_Handle capHandle, const CAP_Stop_Wrap_e stopWrap)</td></tr><tr><td>功能描述</td><td>设置eCAP模块捕获事件的次数</td></tr><tr><td>输入参数1</td><td>eCAP的结构体指针myCap</td></tr><tr><td>输入参数2</td><td>捕获次数,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置eCAP模块的捕获事件次数2次
+
+CAP\_setStopWrap ( myCap，CAP\_Stop\_Wrap\_CEVT2);
+
+函数CAP\_setCapContinuous
+
+<table><tr><td>函数名</td><td>CAP_setCapContinuous</td></tr><tr><td>函数原型</td><td>void CAP_setCapContinuous(CAP_Handle capHandle)</td></tr><tr><td>功能描述</td><td>设置eCAP模块为连续捕获模式</td></tr><tr><td>输入参数</td><td>eCAP的结构体指针myCap</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//设置eCAP模块为连续捕获模式
+
+CAP\_setCapContinuous ( myCap);
+
+函数CAP\_setCapOneShot
+
+<table><tr><td>函数名</td><td>CAP_setCapOneShot</td></tr><tr><td>函数原型</td><td>void CAP_setCapOneShot(CAP_Handle capHandle)</td></tr><tr><td>功能描述</td><td>设置eCAP模块为一次循环捕获模式</td></tr><tr><td>输入参数</td><td>eCAP的结构体指针myCap</td></tr><tr><td>返回值</td><td>无</td></tr><tr><td colspan="2">示例://设置eCAP模块为一次循环捕获模式CAP_setCapOneShot (myCap);</td></tr></table>
+
+函数CAP\_rearm
+
+<table><tr><td>函数名</td><td>CAP_rearm</td></tr><tr><td>函数原型</td><td>void CAP_rearm(CAP_Handle capHandle)</td></tr><tr><td>功能描述</td><td>捕获事件重新装载</td></tr><tr><td>输入参数</td><td>eCAP的结构体指针myCap</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例： //设置eCAP捕获事件重新装载 CAP\_rearm ( myCap);
+
+函数CAP\_disableInt
+
+<table><tr><td>函数名</td><td>CAP_disableInt</td></tr><tr><td>函数原型</td><td>void CAP_disableInt(CAP_Handle capHandle, const CAP_Int_Type_e intType)</td></tr><tr><td>功能描述</td><td>禁止捕获中断</td></tr><tr><td>输入参数1</td><td>eCAP的结构体指针myCap</td></tr><tr><td>输入参数2</td><td>捕获中断参数,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//禁止所有捕获中断
+
+CAP\_disableInt(myCap, CAP\_Int\_Type\_All);
+
+//禁止捕获事件2中断
+
+CAP\_disableInt(myCap, CAP\_Int\_Type\_CEVT2);
+
+函数CAP\_rearm
+
+<table><tr><td>函数名</td><td>CAP_clearInt</td></tr><tr><td>函数原型</td><td>void CAP_clearInt(CAP_Handle capHandle, const CAP_Int_Type_e intType)</td></tr><tr><td>功能描述</td><td>清除中断标志位</td></tr><tr><td>输入参数1</td><td>eCAP的结构体指针myCap</td></tr><tr><td>输入参数2</td><td>捕获中断参数,为库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//清除全局中断标志位
+
+CAP\_clearInt(myCap, CAP\_Int\_Type\_All);
+
+//清除捕获事件4的中断标志位
+
+CAP\_clearInt ( myCap, CAP\_Int\_Type\_CEVT4);
+
+## 1.引脚配置：
+
+ 步骤1：配置引脚功能（GPIO\_setMode）
+
+步骤2：配置引脚方向（GPIO\_setDirection）
+
+步骤3：使能/禁止内部上拉电阻（GPIO\_setPullUp）
+
+步骤4：输入配置为异步系统时钟（GPIO\_setQualification）
+
+## 2.捕获功能配置：
+
+步骤5：捕获模式（CAP\_setModeCap）
+
+步骤6：配置连续模式或单次模式（CAP\_setCapContinuous、CAP\_setCapOneShot）
+
+步骤7：配置捕获事件次数（CAP\_setStopWrap）
+
+步骤8：输入信号分频（CAP\_setprescaler）
+
+步骤:9：边缘极性选择（CAP\_setCapEvtPolarity）
+
+步骤10：配置事件的差分模式或绝对值模式
+
+（CAP\_setCapEvtReset）
+
+步骤11：启动捕获装载（CAP\_enableCaptureLoad）
+
+步骤12：启动捕获计数器开始计数
+
+（CAP\_enableTimestampCounter）
+
+## 3.中断事件配置：
+
+步骤10：中断入口地址注册（PIE\_registerPieIntHandler）
+
+步骤11：捕获事件中断使能（CAP\_enableInt）
+
+步骤12：PIE级中断使能（PIE\_enableInt）
+
+步骤13：CPU级中断使能（CPU\_enableInt）
+
+## 4.中断服务程序：
+
+在捕获中断服务程序里完成捕获事件的处理，清除捕获中断标志位和对应的PIE中断应答位PIEACKx。
+
+## 8.3.3软件思维导图
+
+![](images/245490e6cc71f9841e4c0ef6407a088c84d8749688b1fbf34001ddc3fe45bc53.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["eCAP"] --> B["时钟"]
+  A --> C["GPIO配置"]
+  A --> D["功能配置"]
+  A --> E["中断配置"]
+  A --> F["中断服务程序"]
+    
+  B --> G["eCAP时钟使能"]
+  C --> H["GPIO端口复用——eCAP"]
+  C --> I["GPIO方向——输入"]
+  C --> J["GPIO推挽——使能"]
+  C --> K["GPIO输入时钟—异步"]
+    
+  D --> L["捕获模式"]
+  D --> M["输入预分频"]
+  D --> N["边沿极性选择"]
+  N --> O["下降沿"]
+  N --> P["上升沿"]
+    
+  D --> Q["计数器设置"]
+  Q --> R["差分模式/绝对值模式"]
+  Q --> S["相位同步"]
+    
+  E --> T["中断入口地址注册"]
+  E --> U["eCAP中断使能"]
+  E --> V["PIE中断使能"]
+  E --> W["CPU中断使能"]
+    
+  F --> X["......"]
+```
+</details>
+
+## 8.4.1 应用实例--- “捕捉瞬息万变”
+
+## 1.项目任务：
+
+ 测量给定方波的周期和占空比。在F28027 LaunchPad实验板上完成实例验证。
+
+## 2.项目分析：
+
+（1）设置捕获模块为连续工作方式。  
+（2）设置stopWrap值为01，即 Mod 4循环计数为0->1->0，捕获值循环装载到CAP1-2。  
+（3）捕获事件1设置为上升沿触发，差分模式，当上升沿捕获时，计数器清0，开始新的周期计数；捕获事件2设置为下降沿触发，绝对值模式，这样CAP2即对应高电平的周期值；CAP1的值对应波形周期值。
+
+## 3.部分程序代码：
+
+ 软件工程包括捕获模块引脚配置、功能配置、中断使能配置、中断入口地址配置和中断函数等。参考程序见教材程序清单8-1\~程序清单8-5。
+
+## 思考题：
+
+§8-1 捕获的原理是什么？  
+§8-2 F28027捕获模块需要进行哪些寄存器配置？  
+§8-3 如果eCAP的时钟频率是60MHz，捕获事件1上升沿捕获，差分模式；捕获事件2下降沿捕获，绝对值模式。读取的寄存器值如下：CAP1:40000，CAP2:30000，请计算输入信号的周期和高电平时间。  
+§8-4 设计并完成项目，用捕获模块识别按键的不同动作：短按、长按、双击，分别对3个LED进行开关控制。

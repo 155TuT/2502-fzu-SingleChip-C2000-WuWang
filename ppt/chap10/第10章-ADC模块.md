@@ -1,0 +1,1241 @@
+## 单片机原理及应用
+
+## Principle And Application Of Microcontroller
+
+福州大学电气学院
+
+教材：《微控制器原理及应用--基于TI C2000实时微控制器》，蔡逢煌、王武、江加辉，机械工业出版社
+
+参考资料：
+
+¯TMS320F2802x, TMS320F2802xx Piccolo Technical Reference Manual.
+
+¯TMS320F2802x Microcontrollers datasheet.
+
+1 ADC概述  
+2 TMS320F28027的ADC  
+实训案例---“模拟数字两个世界”
+
+## 1.什么是ADC
+
+模拟数字转换器（Analog to Digital Converter，ADC），也称模数转换器，是将连续变化的模拟信号转换为离散的数字信号的电子器件。它提供微控制器与现实模拟世界的连接通道。因为CPU只能处理数字量，所以需要把外部待测量的模拟量转换为数字量，CPU才能进行处理。
+
+10.1.1 ADC转换步骤  
+10.1.2 ADC关键技术指标  
+10.1.3 ADC的几种主要类型  
+10.1.4 ADC的一般工作流程  
+10.1.5 ADC应用的注意事项
+
+## 10.1 ADC的基础知识
+
+下图为典型的实时闭环控制系统框图，输出量为待测量的电压、电流、温度、压力、流量、速度等物理量，这些物理量先经过传感器变换为电信号，再调制成符合ADC模块输入电压范围的电压模拟量，最后送给ADC模块转换为数字量，实时控制系统可以对该数字量进行处理，用于显示或控制。
+
+![](images/0f4240878c3db1629106342c2e7f857354b67e51d63b3bb91c704a5eb52816bc.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph LR
+  A["给定量 (输入量)"] --> B["+"]
+  B --> C["×"]
+  C --> D["偏差"]
+  D --> E["控制器"]
+  E --> F["D/A"]
+  F --> G["控制量"]
+  G --> H["执行器"]
+  H --> I["被控对象"]
+  I --> J["传感器"]
+  J --> K["信号调制"]
+  K --> L["A/D"]
+  L --> C
+  M["被控量 (输出量)"] --> I
+  N["模拟量"] --> K
+  O["MCU"] --> F
+```
+</details>
+
+ADC转换时，输入的模拟信号在时间上是连续的，而输出的数字信号是离散的。将连续的模拟量转换为离散的数字量通常要经过3个步骤：采样保持、量化、编码。
+
+1. 采样保持：采样是将随时间变化的模拟量转换为在时间上离散的模拟量，保持则将所采样的模拟信号值保持一段时间，以使得后续的量化编码过程中信号值不发生变化。下图为采样保持电路。
+
+![](images/a1adde99d1f5813e9eb0f0de45bf22b611a0a60e88cbcc7e849267d460ddfe19.jpg)
+
+<details>
+<summary>text_image</summary>
+
+Vi
+t
+源信号
+Rs
+ADCIN
+Ron
+3.4 kΩ
+Switch
+Cp
+5 pF
+Ch
+1.6 pF
+Vs
+T
+28x DSP
+t
+</details>
+
+2. 量化：对模拟信号进行采样保持后，得到一个时间上离散的脉冲信号序列，但每个脉冲的幅度仍然是连续的，必须对采样后每个脉冲的幅度进行离散化处理。如图所示，处理方法是用指定的最小单位将模拟量划分为若干个（通常是2n个）区间，这个最小单位所对应的模拟量叫做量化单位。将采样保持电路输出的电平转换为量化单位的整数倍的过程称为量化。
+
+![](images/6e7f7c6e03e41a08cdb77abbb8632fa37daa1d0b2314bf3c9883fa12e9036a63.jpg)
+
+<details>
+<summary>bar chart</summary>
+
+| t | Vs |
+|---|---|
+| 10 | 8.3 |
+| 11 | 9.4 |
+| 12 | 10.0 |
+| 13 | 10.6 |
+| 14 | 11.1 |
+| ... | 11.5 |
+| 15 | 11.6 |
+| 16 | 11.4 |
+| 17 | 10.9 |
+| 18 | 10.3 |
+| 19 | 9.6 |
+| 20 | 8.7 |
+| 21 | 7.4 |
+| 22 | 6.0 |
+| 23 | 4.9 |
+| 24 | 4.1 |
+| 25 | 3.5 |
+| 26 | 3.3 |
+| 27 | 3.0 |
+| 28 | 3.0 |
+| 29 | 3.0 |
+| 30 | 3.2 |
+| 31 | 3.5 |
+| 32 | 4.1 |
+| 33 | 4.8 |
+| 34 | 5.7 |
+| 35 | 7.0 |
+</details>
+
+3. 编码：把量化的结果用二进制表示出来叫做编码。编码长度常用的有8位、 10位、12位和24位。这个二进制位数也就是ADC转换结果的数据长度。
+
+ADC的主要性能参数有量程、分辨率、精度、转换时间、量化误差、偏移误差等。除此之外，其他指标还有：绝对精度、相对精度、微分非线性、单调性和无错码、总谐波失真和积分非线性等等。
+
+1.量程（Full Scale Range，FSR）：量程是指ADC所能转换的模拟输入电压的范围，分为单极性和双极性两种类型。例如，单极性的量程为0\~+3.3V、0\~+5V等；双极性的量程为-5V\~+5V、-12V\~+12V等。  
+2.量化误差 （Quantization Error）：量化时需要把电平转换为量化单位的整数倍，因为模拟电压是连续的，它不一定能被量化单位整除，因而不可避免地会存在误差。AD分辨率越高，量化误差越小。一般是1个或0.5个最小数字量的模拟变化量，表示为1LSB或0.5LSB（1LSB=Vref/2n）
+
+3.分辨率（Resolution）：指ADC能分辨的最小模拟输入量。从理论上来讲，n位输出的ADC能区分2n个不同等级的输入模拟电压，能区分输入电压的最小值为满量程输入的1/2n。在最大输入电压一定时，输出位数越多，量化单位越小，分辨率越高。所以，常以数字信号的位数来表示分辨率。  
+4.精度 （Accuracy）：精度是指对于ADC的数字输出（二进制代码），其实际需要的模拟输入值与理论上要求的模拟输入值之差。
+
+精度与分辨率是两个不同的概念，对于一个ADC来说，即使它的分辨率很高，也有可能由于线性度、温度漂移等原因，导致其精度不高。影响ADC精度的因素除了前面讲过的量化误差以外，还有非线性误差、零点漂移误差和增益误差等，精度会受到这些误差的共同影响。
+
+5.转换时间 （Conversion time）：ADC完成一次AD转换所需要的时间，是指从启动ADC开始到获得相应数据所需要的时间。不同类型的AD转换器有不同的转换时间，从毫秒级到纳秒级。一般来讲，ADC的分辨率越高，转换时间就越长。两者相互制约，需要综合考虑。
+
+6.偏移误差 （Offset Error）：模拟量输入信号为零时，数字量输出不为零的值。  
+7.增益误差 （Gain Error）：满刻度输出时对应的模拟输入量与理想的模拟输入量之差。  
+8.线性度 （Linearity）：实际转换器的转移函数与理想直线的最大偏移。
+
+## 1．逐次逼近型
+
+逐次逼近型ADC属于直接式ADC，其原理可理解为将输入模拟量逐次与 $U _ { R E F } / 2$ 、 $U _ { \sf R E F } / 4$ 、 $U _ { \sf R E F } / 8$ 、…、 $\cup _ { \tt R E F } / 2 ^ { \mathsf { N } - 1 }$ 作比较，模拟量大于比较值取1（并减去比较值），否则取0。逐次逼近型ADC转换精度高，速度较快，价格适中，是目前种类最多、应用最广的AD转换器，典型的8位逐次逼近型AD芯片有ADC0809。
+
+## 2．积分型ADC
+
+积分型ADC是一种间接式ADC，其原理是将输入模拟量和基准量通过积分器积分，转换为时间，再对时间计数，计数值即为数字量。优点是转换精度高，缺点是转换时间较长，一般要40\~50ms，积分型ADC主要应用于低速、精密测量等领域，且成本较低，多用于数字万用表中。典型芯片有MC14433和ICL7109。
+
+## 3．并行比较型ADC
+
+并行比较型ADC的主要原理是将参考电压分为2N-1个等级（对于N位的ADC），通过2N-1个比较器和输入模拟电压进行比较，比较器的输出状态由触发器存储，经编码器编码，得到数字量输出。并行比较型ADC的主要特点是速度快，采样速率最高能达到1GSPS以上，但其分辨率不高。
+
+## 4．压频变换型ADC
+
+压频变换型ADC是一种间接式ADC，其原理是将模拟量转换为频率信号，再对频率信号计数，转换为数字量。其优点是精度高，功耗较低，抗干扰能力强，便于长距离传送，但转换速度较低。
+
+## 5．∑-Δ型ADC
+
+∑-Δ型ADC又称为过采样型ADC，是目前分辨率最高的ADC。它主要由采样/保持电路、模拟低通滤波器、DAC及数字滤波器构成，在此ADC中，大多数的模块都是由数字电路搭建，一些噪声对其的影响很小，不需要特别的处理和调试，就可以达到很高的分辨率。典型的∑-Δ型AD芯片有ADS1210。
+
+## 6．流水线型ADC
+
+流水线型ADC是一种新兴的ADC结构，其原理是将多级比较网络级联在一起，每一级得到一位数字码。如果需要的是n位数字码，则需要比较n次。每次输入的信号必须从头传到尾才算完成了一次量化编码。其优点是高速、高精度，低功耗，芯片面积小，同时具有优异的动态特性。主要应用在电话、传真、卫星、数据通信等通讯系统。
+
+采样通道的选择：ADC模块内部通过多路选择器选择相应的AD通道，AD通道与采样保持电路相连，等待ADC转换。  
+启动ADC转换：启动ADC转换后，会依次经过采样保持、量化和编码三个过程，将输入的模拟量转换为数字量。  
+§ 等待转换结束：转换结束后，数字量保存在ADC结果寄存器中。通过查询或中断方式获取ADC采样结果。  
+ADC采样结果的处理：MCU通过读取ADC结果寄存器的值来获取ADC采样结果，经过处理后用于显示或控制。
+
+参考电压的选择。对要求不高的场合，一般采用内部参考电平。对于需要高精度的采样，推荐使用外部高精准参考电压。  
+板上注意模拟电源和数字电源，以及模拟地和数字地要分开，减少耦合噪声影响。  
+在ADC输入端，通常加入一个RC低通滤波电路，来滤除高频噪声造成的干扰。  
+ADC输入电平需要在ADC有效采样范围内，否则转换结果不会变化，当输入电平过大时，有可能损坏AD模块。  
+ADC应用时必须满足采样定理： $\mathsf { f } _ { \mathsf { s } } \geq 2 \mathsf { f } _ { \mathsf { m a x } }$ ， fs为采样频率，fmax为输入信号的最高频率的分量频率（具体为对信号傅里叶分解之后的最高谐波频率）。
+
+10.2.1 概述  
+10.2.2 ADC模块的内部结构  
+10.2.3 ADC功能描述
+
+F28027有13个ADC引脚可以与外部模拟量相连，分为两组，包括ADCINA（ADCINA7、ADCINA6、ADCINA4、ADCINA3、ADCINA2、ADCINA1、ADCINA0等7个引脚）和ADCINB（ADCINB7、ADCINB6、ADCINB4、ADCINB3、ADCINB2、ADCINB1等6个引脚）。在芯片内部，内置温度传感器占用A5输入，参考电压VREFLO占用B5输入，ADCINA5、ADCINB5和ADCINB0没有外接引脚。
+
+F28027的ADC内核包含一个12位转换器，转换器为部分逐次逼近型、部分流水线型。两路采样保持电路可同步采样（有些应用系统必须同时对两路模拟信号进行同步采样，双采样保持电路为这种应用提供了可能性）或者顺序采样。转换器的模拟参考电平可以配置为外部电压基准(VREFHI/VREFLO)，也可以配置为内部电压基准。
+
+## ADC模块的功能包括：
+
+具有内置双采样保持(S/H)的12位ADC内核  
+同步采样模式或顺序采样模式  
+全范围模拟输入：0V至3.3V，或者VREFLO到VREFHI  
+工作时钟为系统时钟，无需预分频  
+多达16个通道，复用的输入（实际AD输入引脚是13个）
+
+16个SOC，可针对触发源、采样窗口和通道进行配置  
+用于存储转换值的16个结果寄存器（可单独寻址）  
+多个触发源  
+– S/W-软件立即启动  
+ePWM 1-4  
+GPIO XINT2  
+– CPU定时器0/1/2  
+– ADCINT1/2  
+9个灵活的PIE中断，可在任一个转换完成后发出中断请求
+
+## ADC模块的内部结构包括以下各部分：
+
+（1）参考电平发生器（Reference Voltage Generator）  
+（2）输入电路（Input Circuit）  
+（3）转换器(Converter)  
+（4）ADC采样决策（ADC Sample Generation Logic）  
+（5）SOC0\~SOC15配置（SOC0\~SOC15 Configurations）  
+（6）ADC中断管理（ADC Interrupt Logic）  
+（7）AD转换结果寄存器（Result Registers）
+
+![](images/9bce9e84f7e41d8273e59ff09dbe526bf252f07b247e1be06df8e2fcfaf7adc3.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["Reference Voltage Generator"] --> B["Bandgap Reference Circuit"]
+  A --> C["Ext Gain Trim"]
+  B --> D["Int Gain Trim"]
+  C --> D
+  D --> E["1 0"]
+  E --> F["ADCCTL1.ADCREFSEL"]
+  G["Input Circuit"] --> H["CHSEL[2:0"]]
+  H --> I["S/H-A"]
+  I --> J["Converter"]
+  J --> K["Result Registers"]
+  K --> L["RESULT Registers"]
+  L --> M["ADC Interrupt Logic"]
+  M --> N["ADCINT1-9"]
+  O["ADCCTL1.VREFLOCONV"] --> P["S/H-B"]
+  P --> Q["ADC Sample Generation Logic"]
+  Q --> R["EOCx"]
+  R --> S["ADC Interrupt Logic"]
+  S --> T["ADCINT1"]
+  U["ADCCTL1.TEMPCONV"] --> V["S/Oc x Triggers"]
+  V --> W["SW, ePWM, Timer, GPIO"]
+  X["VREFHI"] --> Y["VREFLO"]
+  Z["TEMP SENSOR"] --> AA["ADCINA0-7"]
+  AB["ADCINB0-7"] --> AC["ADCINB1-7"]
+  AD["ADCINB5-7"] --> AE["ADCINB6-7"]
+  AF["ADCINB7-7"] --> AG["ADCINB8-7"]
+  AH["S/H-A"] --> I
+  AI["S/H-B"] --> P
+  AJ["ACQPS SOC"] --> Q
+  AK["CHSEL[3"]] --> J
+  AL["CHSEL"] --> Q
+  AM["SOCx Signals"] --> Q
+```
+</details>
+
+## 1. 参考电平发生器 （Reference Voltage Generator）
+
+通过寄存器ADCCTL1.ADCREFSEL位选择，该位为0时选择内部参考电平，该位为1时选择外部参考电平。
+
+## （1）内部参考电平
+
+<table><tr><td>转换结果(数字量)</td><td>模拟量输入(Input)</td></tr><tr><td>0</td><td>Input≤0V</td></tr><tr><td>4096*[Input-VREFLO)/3.3V]</td><td>0V</td></tr><tr><td>4095</td><td>Input≥3.3V</td></tr></table>
+
+## （2）外部参考电平
+
+<table><tr><td>转换结果(数字量)</td><td>模拟量输入(Input)</td></tr><tr><td>0</td><td>Input≤VREFLO</td></tr><tr><td>4096*[(Input-VREFLO)/(VREFHI-VREFLO)]</td><td>VREFLO &lt; Input&lt; VREFHI</td></tr><tr><td>4095</td><td>Input≥VREFHI</td></tr></table>
+
+## 2.SOC（Start of Convertion）工作原理
+
+ADC的工作是基于SOC控制的，SOC信号送到ADC采样决策辑模块（ADC Sample Generation Logic）进行决策，产生相应的控制信号：通道选择（CHSEL）、采样窗设置（ACQPS）和开始转换触发信号（SOC）。总共有16个SOC配置寄存器，用户通过SOC0\~SOC15配置寄存器进行配置。
+
+每个SOC可以独立配置：转换的通道、采样窗宽度和选择开始转换的触发源。 该配置机制提供了非常灵活的转换方式。比如：用同一个触发源对不同的通道进行采样；用不同的触发源对不同的通道进行采样；也可以用一个触发源对同一个采样通道进行多次采样的过采样。
+
+以下分别对采样通道选择、采样窗宽带和触发源进行详细分析。
+
+## （1） 采样通道选择
+
+输入电路包括通道选择和采样/保持电路。通道选择信号CHSEL[0-2]和CHSEL[3]来自采样决策模块。ADC模块输入的通道有16个（F28027只有13个，见概述说明），分为A组和B组，各8个。内置温度传感器采样占用A5通道，通过ADCCTL1.VREFCONV位进行选择。参考电平VREFLO采样占用B5通道，通过ADCCTL1.TEMPCONV位进行选择。
+
+当使用外部参考电平时，电平VREFHI占用ADCINA0引脚，ADCINA0不能当作采样输入口。
+
+## （2） ADC采样窗宽度选择
+
+采样窗的配置信号ACQPS来自采样决策模块。ADC的采样保持电路必须快速准确地跟踪被采样的信号ADCIN。
+
+设计时要根据待采样信号的特点对采样窗的宽度进行配置，以便外部信号能够对采样电路的电容进行准确合适地充电。采样时间等于（ACQPS+1）个时钟周期，ACQPS最小值为6，最大值为63。转换时间为13个时钟周期。AD处理总的时间等于采样时间和转换时间之和。
+
+<table><tr><td>ADC时钟</td><td>采样窗配置</td><td>采样时间</td><td>转换时间</td><td>AD处理总的时间</td></tr><tr><td>40MHz</td><td>6</td><td>175ns</td><td>325ns</td><td>500ns</td></tr><tr><td>40MHz</td><td>25</td><td>625ns</td><td>325ns</td><td>950ns</td></tr><tr><td>60MHz</td><td>6</td><td>116.67ns</td><td>216.67ns</td><td>333.33ns</td></tr><tr><td>60MHz</td><td>25</td><td>433.67ns</td><td>216.67ns</td><td>650ns</td></tr></table>
+
+## （3）ADC触发源选择
+
+ADC触发源用于启动SOC配置的通道开始AD转换。每个SOC的触发源可以配置为以下任意一个事件。
+
+软件立即触发  
+ePWM 1-4的SOCA和SOCB  
+外部中断2，GPIO XINT2  
+  CPU定时器0/1/2中断  
+ADCINT1/2。用ADC转换结束中断信号作为触发事件，可以用于通道的连续转换控制。
+
+## 3.ADC采样结果的保存与读取
+
+ADC转换的结果保存在结果寄存器ADCRESULTx中。保存方式是：顺序采样时，SOCx触发的通道转换结果保存在对应的ADCRESULTx中，序号一一对应。对于同步采样，通常只用偶数的SOCx，该SOCx配置的一对通道转换后结果保存在ADCRESULTx和ADCRESULT（x+1）中，分别对应A组和B组的转换结果。
+
+例 如 ： S O C 0 配 置 为 同 步 采 样 方 式 ， 通 道 配 置 为（ A D C I N A 3 / A D C I N B 3 ） ， 当 触 发 条 件 满 足 时 ， 对ADCINA3/ADCINB3通道进行同步采样。接着，立即对ADCINA3进行转换，转换结束后结果保存在ADCRESULT0中，然后对ADCINB3进行转换，结果保存在ADCRESULT1中。
+
+## 4．ADC采样优先级
+
+当多个SOC被同时触发时，需要通过优先级来决定哪个SOC对应的通道优先被转换。采样优先级有两种模式：Round Robin模式和具有高优先级的Round Robin模式。
+
+（1）Round Robin模式：是由SOC0\~SOC15组成的一头尾相接，方向固定的循环闭环。环内部的16个SOC没有固定的优先级，优先级由循环指针RRPOINTER决定。当前RRPOINTER的值表示上一次被转换的SOC，那么它的下一个SOC具有最高的优先级。ADC模块复位后，RRPOINTER$= 2 0 \hslash$ ，表示没有SOC被转换，那么SOC0具有最高优先级。
+
+![](images/147ab5c674c42560af67dceced9aaf203cdd39a38881464bf9a5cdf7217a2972.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SOC 0"] --> B["SOC 1"]
+  B --> C["SOC 2"]
+  C --> D["SOC 3"]
+  D --> E["SOC 4"]
+  E --> F["SOC 5"]
+  F --> G["SOC 6"]
+  G --> H["SOC 7"]
+  H --> I["SOC 8"]
+  I --> J["SOC 9"]
+  J --> K["SOC 10"]
+  K --> L["SOC 11"]
+  L --> M["SOC 12"]
+  M --> N["SOC 13"]
+  N --> O["SOC 14"]
+  O --> P["SOC 15"]
+  P --> Q["SOC 1"]
+  Q --> R["SOC 2"]
+  R --> S["SOC 3"]
+  S --> T["SOC 4"]
+  T --> U["SOC 5"]
+  U --> V["SOC 6"]
+  V --> W["SOC 7"]
+  W --> X["SOC 8"]
+  X --> Y["SOC 9"]
+  Y --> Z["SOC 10"]
+  Z --> AA["SOC 11"]
+  AA --> AB["SOC 12"]
+  AB --> AC["SOC 13"]
+  AC --> AD["SOC 14"]
+  AD --> AE["SOC 15"]
+  AE --> AF["SOC 15"]
+  AF --> AG["SOC 14"]
+  AG --> AH["SOC 13"]
+  AH --> AI["SOC 12"]
+  AI --> AJ["SOC 11"]
+  AJ --> AK["SOC 10"]
+  AK --> AL["SOC 9"]
+  AL --> AM["SOC 8"]
+  AM --> AN["SOC 7"]
+  AN --> AO["SOC 6"]
+  AO --> AP["SOC 5"]
+  AP --> AQ["SOC 4"]
+  AQ --> AR["SOC 3"]
+  AR --> AS["SOC 2"]
+  AS --> AT["SOC 1"]
+  AT --> AU["SOC 0"]
+  AU --> AV["SOC 15"]
+  AV --> AW["SOC 14"]
+  AW --> AX["SOC 13"]
+  AX --> AY["SOC 12"]
+  AY --> AZ["SOC 11"]
+  AZ --> BA["SOC 10"]
+  BA --> BB["SOC 9"]
+  BB --> BC["SOC 8"]
+  BC --> BD["SOC 7"]
+  BD --> BE["SOC 6"]
+  BE --> BF["SOC 5"]
+  BF --> BG["SOC 4"]
+  BG --> BH["SOC 3"]
+  BH --> BI["SOC 2"]
+  BI --> BJ["SOC 15"]
+```
+</details>
+
+![](images/d8f2e77ee0968ef9b82982344a657b360a0f6520bd3eefab8f8026fd3eba85c2.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SOC 0"] --> B["SOC 1"]
+  B --> C["SOC 2"]
+  C --> D["SOC 3"]
+  D --> E["SOC 4"]
+  E --> F["SOC 5"]
+  F --> G["SOC 6"]
+  G --> H["SOC 7"]
+  H --> I["SOC 8"]
+  I --> J["SOC 9"]
+  J --> K["SOC 10"]
+  K --> L["SOC 11"]
+  L --> M["SOC 12"]
+  M --> N["SOC 13"]
+  N --> O["SOC 14"]
+  O --> P["SOC 15"]
+  P --> Q["RRPOINTER (value = 7)"]
+```
+</details>
+
+![](images/24ba007106370329889f9792b81e1ee3177c98f71b5baa61a8e3c41153282e7e.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SOC 0"] --> B["SOC 1"]
+  B --> C["SOC 2"]
+  C --> D["SOC 3"]
+  D --> E["SOC 4"]
+  E --> F["SOC 5"]
+  F --> G["SOC 6"]
+  G --> H["SOC 7"]
+  H --> I["SOC 8"]
+  I --> J["SOC 9"]
+  J --> K["SOC 10"]
+  K --> L["SOC 11"]
+  L --> M["SOC 12"]
+  M --> N["SOC 13"]
+  N --> O["SOC 14"]
+  O --> P["SOC 15"]
+  P --> Q["RRPOINTER (value = 7)"]
+```
+</details>
+
+![](images/4d6fe7e4ebe0756f59d5a926712e61cc76bf1a1d7239156aa742207a788b6e9a.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SOC 0"] --> B["SOC 1"]
+  B --> C["SOC 2"]
+  C --> D["SOC 3"]
+  D --> E["SOC 4"]
+  E --> F["SOC 5"]
+  F --> G["SOC 6"]
+  G --> H["SOC 7"]
+  H --> I["SOC 8"]
+  I --> J["SOC 9"]
+  J --> K["SOC 10"]
+  K --> L["SOC 11"]
+  L --> M["SOC 12"]
+  M --> N["SOC 13"]
+  N --> O["SOC 14"]
+  O --> P["SOC 15"]
+  P --> Q["SOC 1"]
+  Q --> R["SOC 2"]
+  R --> S["SOC 3"]
+  S --> T["SOC 4"]
+  T --> U["SOC 5"]
+  U --> V["SOC 6"]
+  V --> W["SOC 7"]
+  W --> X["SOC 8"]
+  X --> Y["SOC 9"]
+  Y --> Z["SOC 10"]
+  Z --> AA["SOC 11"]
+  AA --> AB["SOC 12"]
+  AB --> AC["RRPOINTER (value = 12)"]
+```
+</details>
+
+![](images/60cafe1c6161012c6274754936ef068db4115593460a16d028f45cfaac9c9f62.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SOC 0"] --> B["SOC 1"]
+  B --> C["SOC 2"]
+  C --> D["SOC 3"]
+  D --> E["SOC 4"]
+  E --> F["SOC 5"]
+  F --> G["SOC 6"]
+  G --> H["SOC 7"]
+  H --> I["SOC 8"]
+  I --> J["SOC 9"]
+  J --> K["SOC 10"]
+  K --> L["SOC 11"]
+  L --> M["SOC 12"]
+  M --> N["SOC 13"]
+  N --> O["SOC 14"]
+  O --> P["SOC 15"]
+  P --> Q["RRPOINTER (value = 2)"]
+```
+</details>
+
+（2）具有高优先级的Round Robin模式：该模式可以设置某些SOC具有高优先级，这些高优先级的SOC可以打断Round Robin的循环顺序，优先进行转换。多个高优先级的SOC，序号低的优先级高。
+
+A  
+![](images/702866cb4193a4bc0d6e60fe99d54a5835740006cfcb6f4f7b6a4da4d44b8a3c.jpg)
+
+<details>
+<summary>text_image</summary>
+
+High Priority
+SOC
+0
+SOC
+1
+SOC
+2
+SOC
+3
+</details>
+
+![](images/b30906570920a9c6bb325473e5141f9d68df4f86ef4b2818bda94142e975f4dc.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  SOC4 --> SOC5
+  SOC5 --> SOC6
+  SOC6 --> SOC7
+  SOC7 --> SOC8
+  SOC8 --> SOC9
+  SOC9 --> SOC10
+  SOC10 --> SOC11
+  SOC11 --> SOC12
+  SOC12 --> SOC13
+  SOC13 --> SOC14
+  SOC14 --> SOC15
+  SOC15 --> SOC16
+  SOC16 --> SOC7
+    style RRPOINTER (default = 32) fill:#ffcccc,stroke:#333
+```
+</details>
+
+B  
+![](images/0b02145c97afee657c77767574b1e766920e1a521819eafa68d3968312011f0d.jpg)
+
+![](images/2c34ee0f7293cef0c2b236b2a6cc44e556ed07b94d4b62af0a77323a3cc99d49.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SOC 4"] --> B["SOC 5"]
+  B --> C["SOC 6"]
+  C --> D["SOC 7"]
+  D --> E["SOC 8"]
+  E --> F["SOC 9"]
+  F --> G["SOC 10"]
+  G --> H["SOC 11"]
+  H --> I["SOC 12"]
+  I --> J["SOC 13"]
+  J --> K["SOC 14"]
+  K --> L["SOC 15"]
+  L --> M["RRPOINTER (value = 7)"]
+```
+</details>
+
+C  
+![](images/2d88bfb570a8b2bfeb093a8fd612265f12d7785e3e0cc28c7f8ddcde13f13003.jpg)
+
+![](images/cc8cf79ee32370652e49b84a5896bf91e6d642df7d6943da1d49078bc9b6af3f.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["SOC 12"] --> B["SOC 13"]
+  B --> C["SOC 14"]
+  C --> D["SOC 15"]
+  D --> E["SOC 4"]
+  E --> F["SOC 5"]
+  F --> G["SOC 6"]
+  G --> H["SOC 7"]
+  H --> I["SOC 8"]
+  I --> J["SOC 9"]
+  J --> K["SOC 10"]
+  K --> L["SOC 11"]
+  L --> M["SOC 12"]
+  M --> N["SOC 13"]
+  N --> O["SOC 14"]
+  O --> P["SOC 15"]
+  P --> Q["SOC 4"]
+  Q --> R["SOC 5"]
+  R --> S["SOC 6"]
+  S --> T["SOC 7"]
+  T --> U["SOC 8"]
+  U --> V["SOC 9"]
+  V --> W["SOC 10"]
+  W --> X["SOC 11"]
+  X --> Y["SOC 12"]
+  Y --> Z["SOC 13"]
+  Z --> AA["SOC 14"]
+  AA --> AB["SOC 4"]
+  AB --> AC["SOC 5"]
+  AC --> AD["SOC 6"]
+  AD --> AE["SOC 7"]
+  AE --> AF["SOC 8"]
+  AF --> AG["SOC 9"]
+  AG --> AH["SOC 10"]
+  AH --> AI["SOC 11"]
+  AI --> AJ["SOC 12"]
+  AJ --> AK["SOC 13"]
+  AK --> AL["SOC 14"]
+  AL --> AM["SOC 4"]
+  AM --> AN["SOC 5"]
+  AN --> AO["SOC 6"]
+  AO --> AP["SOC 7"]
+  AP --> AQ["SOC 8"]
+  AQ --> AR["SOC 9"]
+  AR --> AS["SOC 10"]
+  AS --> AT["SOC 11"]
+  AT --> AU["SOC 12"]
+  AU --> AV["SOC 13"]
+  AV --> AW["SOC 14"]
+  AW --> AX["SOC 4"]
+  AX --> AY["SOC 5"]
+  AY --> AZ["SOC 6"]
+  AZ --> BA["SOC 7"]
+  BA --> BB["SOC 8"]
+  BB --> BC["SOC 9"]
+  BC --> BD["SOC 10"]
+  BD --> BE["SOC 11"]
+  BE --> BF["SOC 12"]
+  BF --> BG["SOC 13"]
+  BG --> BH["SOC 14"]
+  BH --> BI["SOC 4"]
+  BI --> BJ["SOC 5"]
+  BJ --> BK["SOC 6"]
+  BK --> BL["SOC 7"]
+  BL --> BM["SOC 8"]
+  BM --> BN["SOC 9"]
+  BN --> BO["SOC 10"]
+  BO --> BP["SOC 11"]
+  BP --> BQ["SOC 12"]
+  BQ --> BR["SOC 13"]
+  BR --> BS["SOC 14"]
+```
+</details>
+
+D  
+![](images/ee2e6d21af3cdcbd02ed72e5c2be69932a9f801c4ae4ac16613651b9b4d0cf0e.jpg)
+
+![](images/66d51ababe198eac76395229c5ef64ab7ab5d44dae5535abed233edf1fd68aa6.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["RRPOINTER (value = 7)"] --> B["SOC 4"]
+  B --> C["SOC 5"]
+  C --> D["SOC 6"]
+  D --> E["SOC 7"]
+  E --> F["SOC 8"]
+  F --> G["SOC 9"]
+  G --> H["SOC 10"]
+  H --> I["SOC 11"]
+  I --> J["SOC 12"]
+  J --> K["SOC 13"]
+  K --> L["SOC 14"]
+  L --> M["SOC 15"]
+  M --> N["SOC 16"]
+  N --> A
+```
+</details>
+
+E  
+![](images/f50700a6788dc161ddc12595e92b2df818f4248d43488aa2bbe8cd8dbc6cb5e8.jpg)
+
+![](images/d7902125edc08ae39e652851e8177df23b107b15f39e0bce681e07caa710776f.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  SOC4 --> SOC5
+  SOC5 --> SOC6
+  SOC6 --> SOC7
+  SOC7 --> SOC8
+  SOC8 --> SOC9
+  SOC9 --> SOC10
+  SOC10 --> SOC11
+  SOC11 --> SOC12
+  SOC12 --> SOC13
+  SOC13 --> SOC14
+  SOC14 --> SOC15
+  SOC15 --> SOC4
+    style RRPOINTER((RRPOINTER, value = 12)) fill:#ffcccc,stroke:#333,stroke-width:2px
+```
+</details>
+
+## 5.ADC中断
+
+对应于16个独立的SOCx，有相应的16个采样结束信号EOCx。
+
+ADC模块有9个中断输出信号，即ADCINT1\~ADCINT9。任意一个EOCx脉冲都可以配置为ADCINTx的触发源。具体功能如下：
+
+（1）EOC脉冲产生模式选择：一种是ADC开始转换时输出EOC脉冲；一种是ADC转换结果保存前一个周期输出EOC脉冲。通过ADCCTRL1.NTPULSEPOS位设置。  
+（2）ADCINTx触发源选择：可以选择16个EOC的任意一个作为INTx的中断触发源。通过INTSELxNy.INTxSEL选择。  
+（3）中断使能：INTSELxNy.INTxE为中断使能开关。  
+（4）连续中断模式选择：INTSELxNy.INTxCONT位用于设置连续中断模式或非连续中断模式。连续模式时，新的中断在EOC触发后马上产生。非连续模式时，新的中断只能在中断标志位清零后产生。如果中断标志位ADCINTFLG.ADCINTx被置位时新的触发信号EOC发生，那么中断溢出标志位INTOVF置位，指示一个中断触发信号丢失。
+
+## 6.顺序采样和同步采样
+
+采样通道分成A组和B组。A组与采样保持电路S/H-A相连，B组与采样保持电路S/H-B相连，所以每次最多只能同时采样两路外部模拟量。根据是否同时采样，采样方式有顺序采样和同步采样两种。
+
+（1）顺序采样：按SOC配置的顺序一个一个通道进行采样保持。顺序采样用于没有时间关联性的外部模拟量采样。顺序采样时，通道选择由CHSEL[3:0]来决定。  
+（2）同步采样：同步采样就是把A、B两组相同序号的通道一对一对同步进行采样保持，比如ADCINA0/ADCINB0，ADCINA1/ADCINB1等。同步采样用在具有时间关联性的多组信号。例如，在交流电指标计量中，需要同时对电压电流进行采样，才能正确得出电压电流的相位差，进而算出功率因素。同步采样时，通道选择由CHSEL[2:0]来决定。
+
+## 7．ADC模块上电时序
+
+复位后ADC模块处于关闭状态。在配置ADC寄存器之前必须使能ADC时钟。ADC模块的上电时序为：
+
+（1）如果选择外部参考电平，则使能该模式。  
+（2）ADC内核、Bandgap电路、参考电路上电  
+（ADCCTL1.ADCPWDN、ADCCTL1.ADCBGPWD、ADCCTL1.ADCREFPWD置位)。  
+（3）ADC模块使能（ADCCTL1.ADCENABLE置位）。  
+（4）1ms后开始AD转换。
+
+10.3.1 寄存器及驱动函数  
+10.3.2 驱动函数描述  
+10.3.3 软件思维导图
+
+ADC寄存器有结果寄存器（ADC Result Register）、ADC控制寄存器(ADC Control Register)、ADC中断寄存器（ADCInterrupt Registers）、ADC优先级寄存器（ADC PriorityRegisters）、SOC寄存器（ADC SOC Registers）。
+
+表10-6\~表10-11为ADC相关寄存器及其对应的驱动函数名。寄存器的详细信息参见芯片的技术参考手册。
+
+1.ADC 转换结果寄存器及其驱动函数
+
+<table><tr><td>寄存器</td><td>描述</td><td>地址</td><td>驱动函数名</td><td>功能</td></tr><tr><td>ADCREULT0~ADCREULT15</td><td>ADC转换结果寄存器</td><td>0x0B00--0x0B0F</td><td>ADC_readResult</td><td>读取结果寄存器的值</td></tr></table>
+
+2. ADC 控制寄存器1及其驱动函数
+
+<table><tr><td>寄存器</td><td>描述</td><td>地址</td><td>驱动函数名</td><td>功能</td></tr><tr><td>ADCCTL1</td><td>ADC控制寄存器1</td><td>0x7100</td><td>ADC_disableADC_enableADC_disableBandGapADC_enableBandGapADC_disableRefBuffersADC_enableRefBuffersADC_disableTempSensorADC_enableTempSensorADC_powerDownADC_powerUpADC_resetADC_setIntPulseGenModeADC_setVoltRefSrc</td><td>ADC模块禁止ADC模块使能Bandgap电路下电Bandgap电路上电参考电路下电参考电路上电禁止内部温度传感器使能内部温度传感器ADC内核下电ADC内核上电ADC重置EOC脉冲产生模式选择选择参考电平</td></tr></table>
+
+## 3. ADC 控制寄存器2及其驱动函数
+
+<table><tr><td>寄存器</td><td>描述</td><td>地址</td><td>驱动函数名</td><td>功能</td></tr><tr><td>ADCCTL2</td><td>ADC控制寄存器</td><td>0x7101</td><td></td><td>ADC控制寄存器2</td></tr></table>
+
+## 4.优先级寄存器及其驱动函数
+
+<table><tr><td>寄存器</td><td>描述</td><td>地址</td><td>驱动函数名</td><td>功能</td></tr><tr><td>SOCPRICTL</td><td>SOC优先级控制寄存器</td><td>0x7110</td><td>ADC_setSOCPRI</td><td>SOC优先级控制</td></tr></table>
+
+5.ADC 中断寄存器及其驱动函数
+
+<table><tr><td>寄存器</td><td>描述</td><td>地址</td><td>驱动函数名</td><td>功能</td></tr><tr><td>ADCINTFLG</td><td>中断标志寄存器</td><td>0x7104</td><td>ADC_getIntStatus</td><td>获取中断标志位状态</td></tr><tr><td>ADCINTFLGCLR</td><td>中断标志清除寄存器</td><td>0x7105</td><td>ADC_clearIntFlag</td><td>清除中断标志位</td></tr><tr><td>ADCINTOVF</td><td>中断溢出寄存器</td><td>0x7106</td><td></td><td></td></tr><tr><td>ADCINTOVFCLR</td><td>中断溢出清除寄存器</td><td>0x7107</td><td></td><td></td></tr><tr><td>INTSEL1N2</td><td>中断1和中断2选择寄存器</td><td>0x7108</td><td rowspan="5">ADC_disableInt ADC_enableInt ADC_setIntMode ADC_setIntSrc</td><td>中断1和中断2选择</td></tr><tr><td>INTSEL3N4</td><td>中断3和中断4选择寄存器</td><td>0x7109</td><td>中断3和中断4选择</td></tr><tr><td>INTSEL5N6</td><td>中断5和中断6选择寄存器</td><td>0x710A</td><td>中断5和中断6选择</td></tr><tr><td>INTSEL7N8</td><td>中断7和中断8选择寄存器</td><td>0x710B</td><td>中断7和中断8选择</td></tr><tr><td>INTSEL9N10</td><td>中断9和中断10选择寄存器</td><td>0x710C</td><td>中断9和中断10选择</td></tr></table>
+
+6. ADC SOC 寄存器及其驱动函数
+
+<table><tr><td>寄存器</td><td>描述</td><td>地址</td><td>驱动函数名</td><td>功能</td></tr><tr><td>ADCSAMPLEMODE</td><td>采样模式寄存器</td><td>0x7112</td><td>ADC_setSampleMode</td><td>选择采样模式</td></tr><tr><td>ADCINTSOCSEL1</td><td>SOC中断选择1</td><td>0x7114</td><td></td><td></td></tr><tr><td>ADCINTSOCSEL2</td><td>SOC中断选择2</td><td>0x7115</td><td></td><td></td></tr><tr><td>ADCSOCFLG1</td><td>SOC标志寄存器</td><td>0x7118</td><td></td><td></td></tr><tr><td>ADCSOCFRC1</td><td>SOC软件触发寄存器</td><td>0x711A</td><td>ADC_forceConversion</td><td>软件强制触发</td></tr><tr><td>ADCSOCOVF1</td><td>SOC溢出寄存器</td><td>0x711C</td><td></td><td></td></tr><tr><td>ADCSOCOVFCLR1</td><td>SOC溢出清除寄存器</td><td>0x711E</td><td></td><td></td></tr><tr><td>ADCSOCxCTL</td><td>SOC0-SOC15控制寄存器</td><td>0x7120-0x712F</td><td>ADC_setSocChanNumberADC_setSocTrigSrcADC_setSocSampleWindow</td><td>SOC通道配置SOC触发源信号配置采样窗宽度配置</td></tr></table>
+
+## 1.函数ADC\_readResult
+
+<table><tr><td>函数名</td><td>ADC_readResult</td></tr><tr><td>函数原型</td><td>void ADC_readResult (ADC_HandleadcHandle, constADC_readResultNumber_ereadResultNumber)</td></tr><tr><td>功能描述</td><td>ADC转换结果寄存器读取</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置ADCRESUL0~15,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>ADC转换结果</td></tr></table>
+
+示例：
+
+//AD转换结果寄存器读取：读取ADCRESULT1的值并返回送给变量Temp。Temp = ADC\_readResult(myAdc，ADC\_ResultNumber\_1)；
+
+## 2.函数ADC\_disable
+
+<table><tr><td>函数名</td><td>ADC_disable</td></tr><tr><td>函数原型</td><td>void ADC_disable(ADC_HandleadcHandle)</td></tr><tr><td>功能描述</td><td>ADC模块禁止</td></tr><tr><td>输入参数</td><td>ADC模块的结构体指针</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//ADC模块禁止
+
+ADC\_disable(myAdc);
+
+## 3.函数ADC\_enable
+
+<table><tr><td>函数名</td><td>ADC_enable</td></tr><tr><td>函数原型</td><td>void ADC_enable(ADC_HandledcHandle)</td></tr><tr><td>功能描述</td><td>ADC模块使能</td></tr><tr><td>输入参数</td><td>ADC模块的结构体指针</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//ADC模块使能
+
+ADC\_enable(myAdc);
+
+## 4.函数ADC\_disableBandGap
+
+<table><tr><td>函数名</td><td>ADC_disableBandGap</td></tr><tr><td>函数原型</td><td>void ADC_disableBandGap (ADC_HandleadcHandle)</td></tr><tr><td>功能描述</td><td>Bandgap电路下电</td></tr><tr><td>输入参数</td><td>ADC模块的结构体指针</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//Bandgap电路下电
+
+ADC\_disableBandGap(myAdc);
+
+## 5.函数ADC\_enableBandGap
+
+<table><tr><td>函数名</td><td>ADC_enableBandGap</td></tr><tr><td>函数原型</td><td>void ADC_enableBandGap (ADC_HandleadcHandle)</td></tr><tr><td>功能描述</td><td>Bandgap电路上电</td></tr><tr><td>输入参数</td><td>ADC模块的结构体指针</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//Bandgap电路上电
+
+ADC\_enableBandGap(myAdc);
+
+## 6.函数ADC\_disableRefBuffers
+
+<table><tr><td>函数名</td><td>ADC_disableRefBuffers</td></tr><tr><td>函数原型</td><td>void ADC_disableRefBuffers(ADC_HandleadcHandle)</td></tr><tr><td>功能描述</td><td>参考电路下电</td></tr><tr><td>输入参数</td><td>ADC模块的结构体指针</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//参考电路下电
+
+ADC\_disableRefBuffers(myAdc);
+
+## 7.函数ADC\_enableRefBuffers
+
+<table><tr><td>函数名</td><td>ADC_enableRefBuffers</td></tr><tr><td>函数原型</td><td>void ADC_enableRefBuffers(ADC_HandleadcHandle)</td></tr><tr><td>功能描述</td><td>参考电路上电</td></tr><tr><td>输入参数</td><td>ADC模块的结构体指针</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//参考电路上电
+
+ADC\_enableRefBuffers(myAdc);
+
+## 8.函数ADC\_powerDown
+
+<table><tr><td>函数名</td><td>ADC_powerDown</td></tr><tr><td>函数原型</td><td>void ADC_powerDown (ADC_HandleadcHandle)</td></tr><tr><td>功能描述</td><td>内核下电</td></tr><tr><td>输入参数</td><td>ADC模块的结构体指针</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//ADC内核下电
+
+ADC\_powerDown(myAdc);
+
+## 9.函数ADC\_powerUp
+
+<table><tr><td>函数名</td><td>ADC_powerUp</td></tr><tr><td>函数原型</td><td>void ADC_powerUp(ADC_HandleadcHandle)</td></tr><tr><td>功能描述</td><td>内核上电</td></tr><tr><td>输入参数</td><td>ADC模块的结构体指针</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//ADC内核上电
+
+ADC\_powerUp(myAdc);
+
+## 10.函数ADC\_setIntPulseGenMode
+
+<table><tr><td>函数名</td><td>ADC_setIntPulseGenMode</td></tr><tr><td>函数原型</td><td>void ADC_setIntPulseGenMode(ADC_HandleadcHandle, const ADC_IntPulseGenMode_epulseMode)</td></tr><tr><td>功能描述</td><td>配置ADC中断脉冲产生信号</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置ADC中断脉冲产生信号,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//表示中断脉冲在ADC结果保存之前一个周期发出。
+
+ADC\_setIntPulseGenMode ( myAdc，ADC\_IntPulseGenMode\_Prior);
+
+//表示中断脉冲在ADC开始转换时发出。
+
+ADC\_setIntPulseGenMode ( myAdc，ADC\_IntPulseGenMode\_During);
+
+## 11.函数ADC\_setVoltRefSrc
+
+<table><tr><td>函数名</td><td>ADC_setVoltRefSrc</td></tr><tr><td>函数原型</td><td>void ADC_setVoltRefSrc(ADC_HandleadcHandle, const ADC_VoltageRefSrc_evoltSrc)</td></tr><tr><td>功能描述</td><td>参考电平选择</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>内部/外部参考电平选择,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//参考电平选择，选择内部参考电平
+
+ADC\_setVoltRefSrc(myAdc, ADC\_VoltageRefSrc\_Int);
+
+## 12.函数ADC\_clearIntFlag
+
+<table><tr><td>函数名</td><td>ADC_clearIntFlag</td></tr><tr><td>函数原型</td><td>void ADC_clearIntFlag (ADC_HandleadcHandle, const ADC_IntNumber_eintNumber)</td></tr><tr><td>功能描述</td><td>中断标志位清0</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置ADC中断通道1~9,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//中断标志位清0：ADCINT5的中断标志位清零。
+
+ADC\_clearIntFlag ( myAdc，ADC\_IntNumber\_5);
+
+## 13.函数ADC\_enableInt
+
+<table><tr><td>函数名</td><td>ADC_enableInt</td></tr><tr><td>函数原型</td><td>void ADC_enableInt(ADC_HandleadcHandle, constADC_IntNumber_eintNumber)</td></tr><tr><td>功能描述</td><td>ADC中断使能</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置ADC中断通道1~9,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//中断使能：使能ADCINT5中断。
+
+ADC\_enableInt ( myAdc，ADC\_IntNumber\_5);
+
+## 14.函数ADC\_setIntMode
+
+<table><tr><td>函数名</td><td>ADC_setIntMode</td></tr><tr><td>函数原型</td><td>void ADC_setIntMode(ADC_HandleadcHandle, constADC_IntNumber_eintNumber, constADC_IntMode_eintMode)</td></tr><tr><td>功能描述</td><td>配置ADC中断模式</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置ADC中断通道1~9,库函数定义的枚举变量</td></tr><tr><td>输入参数3</td><td>配置中断模式:中断标志位清零后/EOC信号触发时产生,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+```c
+//中断连续模式选择：ADCINT5新的中断在中断标志位清零后才能产生。ADC_setIntMode (myAdc, ADC_IntNumber_5, ADC_IntMode_ClearFlag); //中断连续模式选择：ADCINT5新的中断在EOC信号触发时马上产生。ADC_setIntMode (myAdc, ADC_IntNumber_5, ADC_IntMode_EOC);
+```
+
+## 15.函数ADC\_setIntSrc
+
+<table><tr><td>函数名</td><td>ADC_setIntSrc</td></tr><tr><td>函数原型</td><td>void ADC_setIntSrc (ADC_HandleadcHandle, const ADC_IntNumber_eintNumber, const ADC_IntSrc_eintSrc)</td></tr><tr><td>功能描述</td><td>配置ADC中断源信号</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置ADC中断通道1~9,库函数定义的枚举变量</td></tr><tr><td>输入参数3</td><td>配置中断源的转换结束信号,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//配置EOC1为中断INT5的触发源。
+
+ADC\_setIntSrc ( myAdc，ADC\_IntNumber\_5，ADC\_IntSrc\_EOC1);
+
+## 16.函数ADC\_ setSampleMode
+
+<table><tr><td>函数名</td><td>ADC_setSampleMode</td></tr><tr><td>函数原型</td><td>void ADC_setSampleMode(ADC_HandleadcHandle, const ADC_SampleMode_esampleMode)</td></tr><tr><td>功能描述</td><td>ADC采样模式选择</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>独立/顺序采样模式选择,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//采样模式选择：配置SOC0、SOC1独立采样。SOC触发单个通道采样。  
+ADC\_ setSampleMode(myAdc, ADC\_SampleMode\_SOC0\_and\_SOC1\_Separate);  
+//采样模式选择：配置SOC0、SOC1同步采样。SOC触发两个采样通道同时采样。同步采样时，一般只配置偶数的SOC，该SOC所配置的通道对同步采样。采样结果分别保存在ADCRESULT0和ADCRESULT1中。  
+ADC\_ setSampleMode(myAdc, ADC\_SampleMode\_SOC0\_and\_SOC1\_ Together);
+
+## 17.函数ADC\_forceConversion
+
+<table><tr><td>函数名</td><td>ADC_forceConversion</td></tr><tr><td>函数原型</td><td>void ADC_forceConversion(ADC_HandleadcHandle, const ADC_SocNumber_esocNumber)</td></tr><tr><td>功能描述</td><td>强制触发转换</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置SOC0-15,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//软件立即触发，SOC1对应的通道开始AD转换。
+
+ADC\_forceConversion ( myAdc，ADC\_SocNumber\_1);
+
+## 18.函数ADC\_setSocChanNumber
+
+<table><tr><td>函数名</td><td>ADC_setSocChanNumber</td></tr><tr><td>函数原型</td><td>void ADC_setSocChanNumber(ADC_HandleadcHandle, const ADC_SocNumber_esocNumber, const ADC_SocChanNumber_echanNumber)</td></tr><tr><td>功能描述</td><td>SOC通道配置</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置SOC0-15,库函数定义的枚举变量</td></tr><tr><td>输入参数3</td><td>配置SOCA0-B7通道,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//通道选择，配置SOC1选择A0通道。
+
+ADC\_setSocChanNumber ( myAdc，ADC\_SocNumber\_1， ADC\_SocChanNumber\_A0 );
+
+## 19.函数ADC\_setSocTrigSrc
+
+<table><tr><td>函数名</td><td>ADC_setSocTrigSrc</td></tr><tr><td>函数原型</td><td>void ADC_setSocTrigSrc(ADC_HandleadcHandle, constADC_SocNumber_esocNumber, constADC_SocTrigSrc_etrigSrc)</td></tr><tr><td>功能描述</td><td>配置SOC触发源信号</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置SOC0-15,库函数定义的枚举变量</td></tr><tr><td>输入参数3</td><td>配置触发源信号,库函数定义的枚举变量</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//触发源选择：配置SOC1的触发源信号为EPWM1SOCA。
+
+ADC\_setSocTrigSrc(myAdc，ADC\_SocNumber\_1，
+
+ADC\_SocTrigSrc\_EPWM1\_ADCSOCA);
+
+20.函数ADC\_setSocSampleWindow
+
+<table><tr><td>函数名</td><td>ADC_setSocSampleWindow</td></tr><tr><td>函数原型</td><td>void ADC_setSocSampleWindow(ADC_HandleadcHandle, const ADC_SocNumber_esocNumber, const ADC_SocSampleWindow_esampleWindow)</td></tr><tr><td>功能描述</td><td>采样窗宽度配置</td></tr><tr><td>输入参数1</td><td>ADC模块的结构体指针</td></tr><tr><td>输入参数2</td><td>配置SOC0-15,库函数定义的枚举变量</td></tr><tr><td>输入参数3</td><td>采样窗宽度选择:7~35个时钟周期</td></tr><tr><td>返回值</td><td>无</td></tr></table>
+
+示例：
+
+//采样窗宽度配置：配置SOC1触发的通道采样窗宽度为8个时钟周期。
+
+ADC\_setSocSampleWindow ( myAdc，ADC\_SocNumber\_1，
+
+ADC\_SocSampleWindow\_8\_cycles );
+
+![](images/012473a4d7c4d42dd302ac4b978179071ea0d6d8e5063d62008a369ff7cac661.jpg)
+
+<details>
+<summary>flowchart</summary>
+
+```mermaid
+graph TD
+  A["ADC"] --> B["时钟"]
+  A --> C["功能配置"]
+  A --> D["中断配置"]
+  A --> E["中断服务子程序"]
+    
+  B --> F["ADC时钟使能"]
+  B --> G["ADC内核上电"]
+  B --> H["Bandgap电路上电"]
+  B --> I["ADC模块使能"]
+  B --> J["ADC时钟分频"]
+  B --> K["参考电路上电"]
+  B --> L["参考电平选择"]
+  L --> M["内部参考电平"]
+  L --> N["外部参考电平"]
+    
+  C --> O["采样模式选择"]
+  C --> P["通道选择"]
+  C --> Q["触发源配置"]
+  C --> R["采样窗宽度配置"]
+    
+  D --> S["中断入口地址注册"]
+  D --> T["ADC模块级中断使能"]
+  D --> U["PIE级中断使能"]
+  D --> V["CPU级中断使能"]
+  D --> W["EOC脉冲产生模式选择"]
+  D --> X["中断模式选择"]
+  D --> Y["中断源选择"]
+    
+  E --> Z["......"]
+```
+</details>
+
+## 1.ADC功能配置
+
+步骤1：ADC参考电平选择（ADC\_setVoltRefSrc）
+
+步骤2：ADC内核上电（ADC\_powerUp）
+
+步骤3：Bandgap电路上电（ADC\_enableBandGap）
+
+步骤4：参考电路上电（ADC\_enableRefBuffers）
+
+步骤5：ADC模块使能（ADC\_enable）
+
+步骤6：采样模式选择（ADC\_setSampleMode）
+
+步骤7：SOCx触发的通道选择（ADC\_setSocChanNumber）
+
+步骤8：触发源选择（ADC\_setSocTrigSrc）
+
+步骤9：采样窗宽度配置（ADC\_setSocSampleWindow）
+
+步骤10：事件配置（ADC\_setIntPulseGenMode、
+
+ADC\_setIntMode、ADC\_setIntSrc）
+
+## 2.中断事件配置
+
+步骤11：中断入口地址注册（PIE\_registerPieIntHandler）
+
+步骤12：ADC事件中断使能（ADC\_enableInt）
+
+步骤13：PIE级中断使能（PIE\_enableInt）
+
+步骤14：CPU级中断使能（CPU\_enableInt）
+
+## 3.中断服务程序
+
+在ADC中断服务程序里完成转换结果的读取和处理，清除ADC中断标志位和对应的PIE中断应答位PIEACKx。
+
+10.4.1 项目任务  
+10.4.2 任务分析  
+10.4.3 部分程序代码  
+10.4.4 文件管理  
+10.4.5 项目实施
+
+## 1.项目任务
+
+利用芯片内置的温度传感器进行芯片温度的检测，并转换为实际温度值。采样间隔时间为1秒。
+
+## 2.任务分析
+
+AD转换结果与温度的对应关系如图所示。 实际应用中， 可以直接利用库函数
+
+ADC\_getTemperatureC进行 AD值与实际温度值的转换。 采
+
+样间隔时间通过定时器控制，定时时间为1秒，利用定时器T0的中断信号触发ADC转换。
+
+![](images/93cccb387288af6adb1dfa89272f6520ffa0ffff73de4a8679f76ef23f655881.jpg)
+
+<details>
+<summary>line chart</summary>
+
+| LSB       | 温度 (°V/LSB) | 偏移量(0°C LSB value) |
+| --------- | ------------- | --------------------- |
+| Low       | Low           | Low                   |
+| High      | High          | Low                   |
+</details>
+
+软件工程包括ADC模块的功能配置、中断使能配置、中断入口地址配置和中断函数等。参考程序见程序清单1\~程序清单6。程序清单1 ADC模块的功能配置
+
+```c
+/******************************************************************************************
+* 名称：myADC_functionConfigure()
+* 功能：ADC模块的功能配置
+* 路径：..\chap10_ADC_1\User_Component\myAdc\myAdc.c
+******************************************************************************************/
+void myADC_functionConfigure()
+{
+ADC_powerUp(myAdc);    //ADC内核上电
+ADC_enableBandGap(myAdc);    //ADC模块上电
+ADC_enableRefBuffers(myAdc);    //参考电路上电
+ADC_enable(myAdc);    //ADC模块使能
+```
+
+```c
+ADC_setVoltRefSrc(myAdc, ADC_VoltageRefSrc_Int); //使用内部参考电平
+//SOC配置
+ADC_enableTempSensor(myAdc); //通道A5与温度传感器连接
+ADC_setSocChanNumber(myAdc, ADC_SocNumber_0,
+ADC_SocChanNumber_A5); //ADCINA5由SOC0控制
+ADC_setSocSampleWindow(myAdc, ADC_SocNumber_0,
+ADC_SocSampleWindow_7_cycles); //采样窗设置为7个ADCCLK周期
+ADC_setSocTrigSrc(myAdc,
+ADC_SocNumber_0, ADC_SocTrigSrc_CpuTimer_0); //定时器触发
+}
+```
+
+程序清单2 ADC模块中断事件配置  
+```c
+/******************************************************************************************
+* 名称：myADC_eventConfigure()
+* 功能：ADC中断事件配置
+* 路径：..\chap10_ADC_1\User_Component\myAdc\myAdc.c
+******************************************************************************************/
+void myADC_eventConfigure(void)    //中断信号发生时刻配置
+{
+//ADCINT1新的中断在中断标志位清零后才能产生
+ADC_setIntMode(myAdc, ADC_IntNumber_1, ADC_IntMode_ClearFlag);
+//ADC结果保存前一个周期输出EOC脉冲
+ADC_setIntPulseGenMode(myAdc, ADC_IntPulseGenMode_Prior);
+// EOC0触发ADCINT1
+ADC_setIntSrc(myAdc, ADC_IntNumber_1, ADC_IntSrc_EOC0);
+}
+```
+
+## 程序清单3 ADC模块的中断使能配置，中断入口地址配置
+
+```c
+/******************************************************************************************
+* 名称：User_Pie_eventConfigure()
+* 功能：ADC模块的中断使能配置，中断入口地址配置
+* 路径：...\chap10_ADC_1\User_Component\User_Pie\User_Pie.c
+******************************************************************************************/
+void User_Pie_eventConfigure(void)
+{
+//设备级中断允许：ADCINT1中断允许
+ADC_enableInt(myAdc, ADC_IntNumber_1);
+//PIE级中断允许
+    PIE_enableInt(myPie, PIE_GroupNumber_10,
+PIE_InterruptSource_ADCINT_10_1);
+//CPU级中断允许
+    CPU_enableInt(myCpu, CPU_IntNumber_10);
+}
+```
+
+## 程序清单4 中断入口地址配置
+
+```c
+/******************************************************************************************
+* 名称：User_Pie_functionConfigure()
+* 功能：中断入口地址配置
+* 路径：....\chap10_ADC_1\User_Component\User_Pie\User_Pie.c
+*****************************************************************************************/
+void User_Pie_functionConfigure(void)
+{
+PIE_registerPieIntHandler(myPie, PIE_GroupNumber_10,
+PIE_SubGroupNumber_1, (intVec_t)&myAdc_ADCINT_isr);
+}
+```
+
+程序清单5 中断处理子程序  
+```c
+/******************************************************************************************
+* 名称：interrupt void myAdc_ADCINT_isr (void)
+* 功能：中断处理子程序
+* 路径：...\chap10_ADC_1\Application\isr.c
+****************************************************************************************/
+interrupt void myAdc_ADCINT_isr (void)
+{
+Temp = ADC_readResult(myAdc, ADC_ResultNumber_0); //片内温度采样的数字量
+TempC = ADC_getTemperatureC(myAdc, Temp); //温度转化为摄氏度
+ADC_clearIntFlag(myAdc, ADC_IntNumber_1); //清除ADC中断标志位
+PIE_clearInt(myPie, PIE_GroupNumber_10); //清除PIE级中断标志位
+return;
+}
+```
+
+程序清单6 主程序main.c  
+```c
+#define TARGET_GLOBAL 1
+#include "Application\isr.h"
+void main(void)
+{
+    //1. System runtime environment
+    User_System_pinConfigure();
+    User_System_functionConfigure();
+    User_System_eventConfigure();
+    User_System_initial();
+    //2. Module
+    //2.1 ADC模块初始化
+    User_ADC_initial();
+    User_ADC_pinConfigure();
+    User_ADC_functionConfigure();
+    User_ADC_eventConfigure();
+```
+
+```verilog
+//3. PIE 初始化
+User_Pie_initial();
+User_Pie_pinConfigure();
+User_Pie_functionConfigure();
+User_Pie_eventConfigure();
+//4. the global interrupt start (if use interrupt)
+User_Pie_start();
+//5. main LOOP
+for( ; ; )
+    {
+    }
+}
+```
+
+程序文件管理方式参见第4章。在第4章软件工程架构的基础上，在用户层增加了myAdc文件，包括myAdc.c和myAdc.h。在User\_Device.h文件中包含新增的库文件myAdc.h。在中断程序中进行ADC采样值的读取和温度数据的转化。
+
+项目实施步骤如下。
+
+第一步：导入工程chap10\_ADC\_1。
+
+第二步：编译工程，如没有错误，则会生成
+
+chap10\_ADC\_1.out文件。如有错误则修改程序直至没有错误为止。
+
+第三步：将生成的目标文件下载到MCU的Flash存储器中。
+
+第四步：运行程序，检查实验结果。可以通过CCS观察窗口查看变量值。工程运行后，在调试窗口中把TempC和Temp变量添加到观测窗口。可以看到当前的温度采样值和对应的实际值。
+
+如图10-14所示，当前芯片温度采样得到的数字量为1845，对应的实际温度为25度。
+
+<table><tr><td>(x)= Variables</td><td>Expressions</td><td colspan="3">1010 Registers</td></tr><tr><td>Expression</td><td>Type</td><td>Value</td><td colspan="2">Address</td></tr><tr><td>(x)= TempC</td><td>unsigned int</td><td>25</td><td colspan="2">0x00008803@Data</td></tr><tr><td>(x)= Temp</td><td>unsigned int</td><td>1845</td><td colspan="2">0x00008802@Data</td></tr><tr><td>+ Add new expression</td><td></td><td></td><td colspan="2"></td></tr></table>
+
+## 思考题：
+
+§10-1 实时微控制系统中ADC模块的作用是什么？  
+§10-2 AD转换器的技术指标有哪些？分别代表什么意思？  
+§10-3 ADC的主要类型有哪些？它们各有什么特点？  
+§10-4 ADC进行模数转换分为哪几步？  
+§10-5 F28027的ADC的触发方式有哪些？  
+§10-6 在不同环境温度下，需要对ADC的转换结果进行零偏校正，阅读数据手册，思考如何进行校正？  
+§10-7 F28027的ADC的转换结果与模拟量输入值之间的对应关系是什么?  
+§10-8 设备并完成项目，实现以下功能：
+
+采样MCU片上温度 （A5通道)；
+
+采样VREFLO(B5通道）
+
+对采样数据进行滤波处理（自由发挥）；
+
+采用同步采样方式，SOC触发信号为PWM周期中断，PWM周期为1s。
